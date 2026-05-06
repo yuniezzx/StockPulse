@@ -14,10 +14,13 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { mainNavItems, footerNavItems } from "@/lib/nav";
+import { useAuthStore } from "@/store/auth";
 
 export function AppSidebar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
 
   const isActive = (url: string) => {
     if (url === "/") return pathname === "/";
@@ -25,8 +28,7 @@ export function AppSidebar() {
   };
 
   const handleLogout = () => {
-    // TODO: 接入真实登出逻辑（清除 token / store）
-    console.log("logout");
+    logout();
     navigate("/login");
   };
 
@@ -78,9 +80,9 @@ export function AppSidebar() {
           ))}
 
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Yuniezzx">
+            <SidebarMenuButton tooltip={user?.name ?? "未登录"}>
               <User />
-              <span>Yuniezzx</span>
+              <span>{user?.name ?? "未登录"}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
 

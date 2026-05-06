@@ -26,6 +26,4 @@ export const mainNavItems: NavItem[] = [
   { title: "回测", url: "/backtest", icon: FlaskConical },
 ];
 
-export const footerNavItems: NavItem[] = [
-  { title: "设置", url: "/settings", icon: Settings },
-];
+export const footerNavItems: NavItem[] = [{ title: "设置", url: "/settings", icon: Settings }];
