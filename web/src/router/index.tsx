@@ -4,24 +4,31 @@ import HomePage from "@/pages/home";
 import DashboardPage from "@/pages/dashboard";
 import PlaceholderPage from "@/pages/placeholder";
 import AppLayout from "@/components/layout/app-layout";
+import { ProtectedRoute } from "@/components/auth/protected-route";
+import { GuestRoute } from "@/components/auth/guest-route";
 
 export const router = createBrowserRouter([
   {
-    path: "/login",
-    element: <LoginPage />,
+    element: <GuestRoute />,
+    children: [{ path: "/login", element: <LoginPage /> }],
   },
   {
-    path: "/",
-    element: <AppLayout />,
+    element: <ProtectedRoute />,
     children: [
-      { index: true, element: <HomePage /> },
-      { path: "dashboard", element: <DashboardPage /> },
-      { path: "portfolio", element: <PlaceholderPage /> },
-      { path: "holdings", element: <PlaceholderPage /> },
-      { path: "transactions", element: <PlaceholderPage /> },
-      { path: "market", element: <PlaceholderPage /> },
-      { path: "backtest", element: <PlaceholderPage /> },
-      { path: "settings", element: <PlaceholderPage /> },
+      {
+        path: "/",
+        element: <AppLayout />,
+        children: [
+          { index: true, element: <HomePage /> },
+          { path: "dashboard", element: <DashboardPage /> },
+          { path: "portfolio", element: <PlaceholderPage /> },
+          { path: "holdings", element: <PlaceholderPage /> },
+          { path: "transactions", element: <PlaceholderPage /> },
+          { path: "market", element: <PlaceholderPage /> },
+          { path: "backtest", element: <PlaceholderPage /> },
+          { path: "settings", element: <PlaceholderPage /> },
+        ],
+      },
     ],
   },
   {
