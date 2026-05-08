@@ -4,6 +4,13 @@
 # Node
 node_modules/
 dist/
+*.tsbuildinfo
+*.log
+
+# 编辑器
+.vscode/*
+!.vscode/settings.json
+.idea/
 
 # Python
 __pycache__/

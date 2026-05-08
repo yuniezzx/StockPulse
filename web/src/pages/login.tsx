@@ -9,7 +9,7 @@ import { useAuthStore } from "@/store/auth";
 export default function LoginPage() {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -20,8 +20,8 @@ export default function LoginPage() {
     await new Promise((resolve) => setTimeout(resolve, 300));
     login(`mock-token-${Date.now()}`, {
       id: "1",
-      email,
-      name: email.split("@")[0] || "用户",
+      username,
+      name: username || "用户",
     });
     setLoading(false);
     navigate("/");
@@ -37,14 +37,14 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">邮箱</Label>
+              <Label htmlFor="username">用户名</Label>
               <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                autoComplete="username"
+                placeholder="请输入用户名"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
                 className="h-11"
               />
