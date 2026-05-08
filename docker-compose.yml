@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:17-bookworm
+    restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
