@@ -3,8 +3,8 @@ import { persist } from "zustand/middleware";
 
 export type User = {
   id: string;
-  name: string;
   username: string;
+  createdAt: string;
 };
 
 type AuthState = {
