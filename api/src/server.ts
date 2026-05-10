@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import { env } from "./config/env.js";
 import { closePool } from "./adapters/db/pool.js";
+import corsPlugin from "./plugins/cors.js";
 import jwtPlugin from "./plugins/jwt.js";
 import authRoutes from "./domains/auth/routes.js";
 
@@ -22,6 +23,7 @@ app.get("/health", async () => {
 
 async function main(): Promise<void> {
   try {
+    await app.register(corsPlugin);
     await app.register(jwtPlugin);
     await app.register(authRoutes);
     await app.listen({ port: env.API_PORT, host: "0.0.0.0" });
