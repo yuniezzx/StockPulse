@@ -1,6 +1,8 @@
 import Fastify from "fastify";
 import { env } from "./config/env.js";
 import { closePool } from "./adapters/db/pool.js";
+import jwtPlugin from "./plugins/jwt.js";
+import authRoutes from "./domains/auth/routes.js";
 
 const app = Fastify({
   logger: {
@@ -20,6 +22,8 @@ app.get("/health", async () => {
 
 async function main(): Promise<void> {
   try {
+    await app.register(jwtPlugin);
+    await app.register(authRoutes);
     await app.listen({ port: env.API_PORT, host: "0.0.0.0" });
   } catch (error) {
     app.log.error(error);
