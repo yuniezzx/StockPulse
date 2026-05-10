@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import LoginPage from "@/pages/login";
+import RegisterPage from "@/pages/register";
 import HomePage from "@/pages/home";
 import DashboardPage from "@/pages/dashboard";
 import PlaceholderPage from "@/pages/placeholder";
@@ -10,7 +11,10 @@ import { GuestRoute } from "@/components/auth/guest-route";
 export const router = createBrowserRouter([
   {
     element: <GuestRoute />,
-    children: [{ path: "/login", element: <LoginPage /> }],
+    children: [
+      { path: "/login", element: <LoginPage /> },
+      { path: "/register", element: <RegisterPage /> },
+    ],
   },
   {
     element: <ProtectedRoute />,

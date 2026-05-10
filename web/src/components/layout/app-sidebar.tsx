@@ -80,9 +80,9 @@ export function AppSidebar() {
           ))}
 
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip={user?.name ?? "未登录"}>
+            <SidebarMenuButton tooltip={user?.username ?? "未登录"}>
               <User />
-              <span>{user?.name ?? "未登录"}</span>
+              <span>{user?.username ?? "未登录"}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
 
