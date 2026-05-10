@@ -3,7 +3,13 @@ import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { pool, closePool } from "../src/adapters/db/pool.js";
 
-const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
+const MIGRATIONS_DIR = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",        // api/scripts → api/
+  "..",        // api/ → repo root
+  "db",
+  "migrations",
+);
 
 async function ensureMigrationsTable(): Promise<void> {
   await pool.query(`
