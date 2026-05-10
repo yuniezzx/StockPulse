@@ -8,7 +8,7 @@ const Schema = z.object({
 });
 
 const result = Schema.safeParse(process.env);
-  
+
 if (!result.success) {
   console.error("❌ Invalid environment variables:");
   console.error(z.prettifyError(result.error));
