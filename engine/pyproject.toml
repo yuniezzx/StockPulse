@@ -13,6 +13,11 @@ dependencies = [
     "pandas>=2.2.0",
 ]
 
+[dependency-groups]
+dev = [
+    "ruff>=0.15.12",
+]
+
 [tool.uv]
 package = false
 
@@ -23,3 +28,6 @@ src = ["."]
 
 [tool.ruff.format]
 quote-style = "double"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"] 

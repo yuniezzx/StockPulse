@@ -15,7 +15,9 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = Field(min_length=1)
     TUSHARE_API_URL: str = Field(min_length=1)
-    TUSHARE_TOKEN: str = Field(default="", description="56-char token; empty in dev when not pulling data")
+    TUSHARE_TOKEN: str = Field(
+        default="", description="56-char token; empty in dev when not pulling data"
+    )
 
 
 settings = Settings()  # type: ignore[call-arg]
