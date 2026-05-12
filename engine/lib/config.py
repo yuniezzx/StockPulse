@@ -1,9 +1,11 @@
+from datetime import date
 from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+HISTORY_START_DATE: date = date(2023, 1, 1)
 
 
 class Settings(BaseSettings):
