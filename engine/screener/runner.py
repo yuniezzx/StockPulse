@@ -23,7 +23,6 @@ async def run_screener(screener: Screener, trade_date: date) -> None:
     """跑单个策略 + 写库。失败时 log，不抛出。"""
     try:
         picks = await screener.run(trade_date)
-        picks.sort(key=lambda p: p.score, reverse=True)  # 按分数降序排序
         await write_picks(trade_date, screener.name, picks)
         logger.info(f"[{screener.name}] {len(picks)} picks saved")
     except Exception as e:
@@ -31,27 +30,23 @@ async def run_screener(screener: Screener, trade_date: date) -> None:
 
 
 async def write_picks(trade_date: date, strategy: str, picks: list[Pick]) -> None:
-    """UPSERT 写入 daily_picks"""
-    if not picks:
-        return
+    """先删后插：保证 (trade_date, strategy) 维度数据为本次最新结果，无残留。"""
     async with acquire() as conn:
-        await conn.executemany(
-            """
-            INSERT INTO daily_picks (trade_date, ts_code, strategy, 
-            score, rank_in_strategy, signals)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT (trade_date, ts_code, strategy)
-            DO UPDATE SET
-                score = EXCLUDED.score,
-                rank_in_strategy = EXCLUDED.rank_in_strategy,
-                signals = EXCLUDED.signals,
-                created_at = NOW()
-            """,
-            [
-                (trade_date, p.ts_code, strategy, p.score, rank, p.signals)
-                for rank, p in enumerate(picks, start=1)
-            ],
-        )
+        async with conn.transaction():
+            await conn.execute(
+                "DELETE FROM daily_picks WHERE trade_date = $1 AND strategy = $2",
+                trade_date,
+                strategy,
+            )
+            if not picks:
+                return
+            await conn.executemany(
+                """
+                INSERT INTO daily_picks (trade_date, ts_code, strategy, score, signals)
+                VALUES ($1, $2, $3, $4, $5)
+                """,
+                [(trade_date, p.ts_code, strategy, p.score, p.signals) for p in picks],
+            )
 
 
 async def run_daily(trade_date: date) -> None:

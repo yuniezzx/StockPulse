@@ -14,7 +14,6 @@ class PickItem(BaseModel):
     name: str | None
     strategy: str
     score: float
-    rank_in_strategy: int
     signals: dict
 
 
@@ -69,11 +68,11 @@ async def picks_today() -> PickTodayResponse:
                 SELECT MAX(trade_date) AS d FROM daily_picks
             )
             SELECT p.trade_date, p.ts_code, s.name, p.strategy,
-                   p.score, p.rank_in_strategy, p.signals
+                   p.score, p.signals
             FROM daily_picks p
             LEFT JOIN stocks_cn s ON p.ts_code = s.ts_code
             WHERE p.trade_date = (SELECT d FROM latest)
-            ORDER BY p.strategy, p.rank_in_strategy
+            ORDER BY p.strategy, p.score DESC
             """
         )
 
@@ -89,7 +88,6 @@ async def picks_today() -> PickTodayResponse:
                 name=r["name"],
                 strategy=r["strategy"],
                 score=r["score"],
-                rank_in_strategy=r["rank_in_strategy"],
                 signals=r["signals"],
             )
             for r in rows
