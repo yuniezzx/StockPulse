@@ -19,6 +19,8 @@ dependencies = [
 [dependency-groups]
 dev = [
     "ruff>=0.15.12",
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
 ]
 
 [tool.uv]
@@ -34,3 +36,8 @@ quote-style = "double"
 
 [tool.ruff.lint]
 select = ["E", "F", "I"] 
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+testpaths = ["tests"]

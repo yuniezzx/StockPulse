@@ -35,3 +35,6 @@ __pycache__/
 *.ntvs*
 *.njsproj
 *.sln
+
+# Sisyphus
+.sisyphus/
