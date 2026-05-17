@@ -7,7 +7,6 @@ import pandas as pd
 from loguru import logger
 
 from ingestion.base import (
-    LOOKBACK_TRADING_DAYS,
     PROGRESS_INTERVAL,
     SLEEP_BETWEEN_CALLS,
     fetch_trading_days,

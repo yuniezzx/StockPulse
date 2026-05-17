@@ -11,7 +11,9 @@ dependencies = [
     "tushare>=1.4.0,<2.0.0",
     "tenacity>=9.0.0",
     "pandas>=2.2.0",
-    "pandas-ta>=0.4.71b0",
+    "fastapi>=0.136.1",
+    "uvicorn[standard]>=0.47.0",
+    "pandas-ta-classic>=0.5.44",
 ]
 
 [dependency-groups]
