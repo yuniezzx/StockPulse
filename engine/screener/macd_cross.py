@@ -11,7 +11,7 @@ class MACDCrossScreener(Screener):
     name = "macd_cross"
 
     async def run(self, trade_date: date) -> list[Pick]:
-        universe = await self._get_universe()
+        universe = await self._get_universe(trade_date)
         picks = []
         for ts_code in universe:
             pick = await self._evaluate(ts_code, trade_date)
@@ -19,9 +19,18 @@ class MACDCrossScreener(Screener):
                 picks.append(pick)
         return picks
 
-    async def _get_universe(self) -> list[str]:
+    async def _get_universe(self, trade_date: date) -> list[str]:
         async with acquire() as conn:
-            rows = await conn.fetch("SELECT ts_code FROM stocks_cn WHERE list_status = 'L'")
+            rows = await conn.fetch(
+                """
+                SELECT ts_code
+                FROM stocks_cn
+                WHERE list_status = 'L'
+                  AND name NOT LIKE '%ST%'
+                  AND list_date <= $1::date - INTERVAL '120 days'
+                """,
+                trade_date,
+            )
         return [r["ts_code"] for r in rows]
 
     async def _evaluate(self, ts_code: str, trade_date: date) -> Pick | None:
