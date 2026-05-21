@@ -11,10 +11,11 @@
 **"边界 1:1 对齐外部源；内部统一语言习惯；跨边界处显式转换。"**
 
 - **数据库 / Python / SQL** → `snake_case`（对齐 Tushare 与 SQL 习惯）
-- **TypeScript / JavaScript（`api/` + `web/`）** → `camelCase`
+- **TypeScript / JavaScript（`pulse-api/` + `pulse-web/`）** → `camelCase`
 - **跨边界转换发生在 API repository 层**：snake_case 绝不泄漏到前端类型
 - **保留字段名与 Tushare 1:1 对齐**（不重命名 Tushare 原字段）
 - **文件名默认 `kebab-case`**；Python 文件用 `snake_case`；SQL migration 用带序号的 `snake_case`
+- **Python 包名特例**：目录名连字符（`pulse-core/`），包名下划线（`pulse_core/`），符合 pip 习惯 + Python import 规则
 
 ---
 
@@ -81,13 +82,15 @@
 
 ---
 
-## 二、Python（`engine/`）
+## 二、Python（`pulse-core/`）
 
 ### 2.1 模块 / 包 / 文件
 
 - 全部 `snake_case.py`
 - **ingestion 文件名 = 目标表名**：`ingestion/daily_cn.py` ↔ `daily_cn` 表
-- **screener 文件名 = 策略 key**：`screener/breakout.py` ↔ `name = "breakout"`
+- **screener 策略文件名 = 策略 key**：`screener/strategies/breakout.py` ↔ `name = "breakout"`
+- **screener 过滤器文件名 = 过滤器 key**：`screener/filters/liquidity.py` ↔ `name = "liquidity"`
+- **screener 赛道配置**：`screener/tracks/{track}.yaml`（短打/波段/中线声明式组合 filters + strategies）
 - 测试文件：`tests/test_{被测模块}.py`
 - 私有脚本入口：`_main()` + `if __name__ == "__main__"`
 
@@ -102,21 +105,32 @@
 | 模块级常量 | `UPPER_SNAKE_CASE` | `BREAKOUT_WINDOW`、`SLEEP_BETWEEN_CALLS`、`LOOKBACK_DAYS`、`HISTORY_START_DATE` |
 | 类型别名 | `PascalCase` | `RowList = list[tuple]` |
 
-### 2.3 Screener 命名契约（**跨语言 contract**）
+### 2.3 Strategy 命名契约（**跨语言 contract**）
 
-- **类名**：`{策略名 PascalCase}Screener`
+- **类名**：`{策略名 PascalCase}Strategy`
 - **类属性 `name`**：snake_case，作为跨 DB / API / 前端的**唯一策略 key**
 
 | 类名 | `name` | DB `daily_picks.strategy` | 前端 `strategy-meta.ts` key |
 |---|---|---|---|
-| `BreakoutScreener` | `"breakout"` | `"breakout"` | `"breakout"` |
-| `PullbackScreener` | `"pullback"` | `"pullback"` | `"pullback"` |
-| `MACDCrossScreener` | `"macd_cross"` | `"macd_cross"` | `"macd_cross"` |
-| `LimitUpScreener` | `"limit_up"` | `"limit_up"` | `"limit_up"` |
-| `MoneyflowScreener` | `"moneyflow"` | `"moneyflow"` | `"moneyflow"` |
-| `SectorLeaderScreener` | `"sector_leader"` | `"sector_leader"` | `"sector_leader"` |
+| `BreakoutStrategy` | `"breakout"` | `"breakout"` | `"breakout"` |
+| `MACDCrossStrategy` | `"macd_cross"` | `"macd_cross"` | `"macd_cross"` |
+| `LimitUpStrategy` | `"limit_up"` | `"limit_up"` | `"limit_up"` |
+
+（具体策略列表编码时定，上表仅示例命名风格。）
 
 **四个值必须完全一致**，任何不一致都视为 bug。
+
+### 2.3.1 Filter 命名契约
+
+- **类名**：`{过滤器名 PascalCase}Filter`
+- **类属性 `name`**：snake_case
+- 例：`LiquidityFilter` / `name = "liquidity"`
+
+### 2.3.2 Track 命名契约
+
+- 配置文件：`screener/tracks/{track}.yaml`
+- track key：snake_case，三层一致（YAML 文件名 / DB `track` 列 / 前端 `track-meta.ts` key）
+- 内置 track：`scalp`（超短）、`swing`（波段）、`position`（中线）
 
 ### 2.4 pandas DataFrame 列名
 
@@ -131,7 +145,7 @@
 
 ### 2.5 异步 / 数据库访问
 
-- 数据库连接通过 `lib.db.acquire()` 上下文管理器获取
+- 数据库连接通过 `pulse_core.lib.db.acquire()` 上下文管理器获取
 - 写操作显式使用 `async with conn.transaction()`
 - 批量插入用 `conn.executemany`，单行用 `conn.execute`
 - SQL 字符串用 `_前导下划线 + UPPER_SNAKE` 命名的模块级常量（如 `_UPSERT_SQL`）
@@ -144,7 +158,7 @@
 
 ---
 
-## 三、TypeScript（`api/` + `web/`）
+## 三、TypeScript（`pulse-api/` + `pulse-web/`）
 
 ### 3.1 文件名
 
@@ -185,7 +199,7 @@ interface ResonanceItem {
 }
 ```
 
-**转换层**：`api/src/domains/{feature}/repository.ts` 或 `service.ts`
+**转换层**：`pulse-api/src/domains/{feature}/repository.ts` 或 `service.ts`
 - repository 内部用 snake_case 的 row 类型（如 `ResonanceRow`）
 - 暴露给 routes / 前端的对象必须 camelCase（如 `ResonanceItem`）
 
@@ -195,11 +209,15 @@ interface ResonanceItem {
 
 **API（domain-driven）**：
 ```
-api/src/
+pulse-api/src/
 ├── server.ts
 ├── config/                # 配置 / 环境变量校验
-├── plugins/               # Fastify 插件（cors、jwt 等）
-├── adapters/              # 外部资源适配（db pool、redis 等）
+├── plugins/               # Fastify 插件（cors、jwt、cron 等）
+├── adapters/              # 外部资源适配（db pool 等）
+├── notifier/              # 后台任务：扫 outbox → 发企业微信 / 邮件
+│   ├── runner.ts
+│   ├── briefing.ts       # 早报聚合
+│   └── channels/          # wework / email / telegram
 └── domains/{name}/        # 每个业务域一个目录
     ├── routes.ts          # HTTP 路由（薄，只做参数校验 + 调 service）
     ├── service.ts         # 业务逻辑
@@ -209,7 +227,7 @@ api/src/
 
 **Web（feature-driven）**：
 ```
-web/src/
+pulse-web/src/
 ├── main.tsx
 ├── router/                # 路由配置
 ├── pages/{feature}/       # 路由页面
@@ -223,7 +241,7 @@ web/src/
 ├── lib/
 │   ├── api/               # API 调用层，一个 feature 一文件
 │   ├── utils.ts           # cn() 等通用工具
-│   └── {feature}-meta.ts  # feature 元数据（如 strategy-meta.ts）
+│   └── {feature}-meta.ts  # feature 元数据（strategy-meta / track-meta / exit-reason-meta）
 └── types/                 # 跨 feature 共享类型
 ```
 
@@ -271,15 +289,79 @@ export type ResonanceItem = z.infer<typeof resonanceItemSchema>;
 
 ---
 
+## 四点五、JSONB 使用边界
+
+**原则**：JSONB 是"逃生舱"，不是默认存储。**结构化的、要查询的、要校验的字段必须升列**。
+
+### 4.5.1 何时用 JSONB（✅）
+
+- **策略 signals 详情**：每个策略输出的中间值（如 MACD 的 `dif/dea/hist`），结构因策略而异
+- **校验报告快照**：`evaluations.report`（每次校验跑完一份完整快照，结构会演进）
+- **通知 payload**：`notifications_outbox.payload`（不同事件结构不同）
+- **用户偏好**：`preferences.config`（个性化字段集合）
+- **风控触发上下文**：`risk_signals.context`（触发时的快照数据）
+
+### 4.5.2 何时禁止 JSONB（❌）
+
+- 任何需要 `WHERE` / `ORDER BY` / `JOIN` 的字段
+- 任何有固定枚举值的字段（如 `strategy` / `track` / `status`）
+- 任何统计需要的数值字段（`score` / `pnl` / `weight`）
+- 任何外键引用
+
+### 4.5.3 JSONB 字段命名
+
+- 列名以 `_data` / `_payload` / `_context` / `_config` / `_report` / `_signals` 结尾
+- JSONB **内部 key** 仍用 `snake_case`（与 DB 风格统一）
+- 进入 TS 后整个 JSONB 块用 `Record<string, unknown>` 接收，业务侧再窄化
+
+```ts
+// ✅ snake_case 在 JSONB 内部允许（DB 内部约定）
+const signals = { macd_dif: 0.5, vol_ratio: 1.8 };
+
+// JSONB 字段映射到 TS：键名 camelCase 化只在"显式提取"时做
+interface PickDetail {
+  signals: Record<string, unknown>;  // 透传，不做键名转换
+}
+```
+
+---
+
+## 四点六、软删除规则
+
+**原则**：能硬删就硬删。仅以下场景启用软删除。
+
+### 4.6.1 何时软删除（`deleted_at TIMESTAMPTZ`）
+
+- 用户真实持仓：清仓后保留历史（`real_positions.deleted_at`）
+- 虚拟持仓：退出后归档（`virtual_positions.deleted_at`）
+- 用户审核记录：永久保留（`weight_decisions` 用 `status` 字段替代软删除）
+
+### 4.6.2 软删除字段命名
+
+- 列名固定 `deleted_at`，类型 `TIMESTAMPTZ NULL`
+- 配套查询视图：`v_{表}_active`（自动过滤 `WHERE deleted_at IS NULL`）
+- 所有 SELECT **默认** 加 `WHERE deleted_at IS NULL`，需要全量时显式写 `INCLUDE deleted`
+
+### 4.6.3 自动数据不软删
+
+圈 1/2/3 的自动数据（`daily_cn` / `daily_picks` / `risk_signals` 等）**禁止**软删除：
+- 重跑覆盖（`ON CONFLICT DO UPDATE`）或硬删重写
+- 历史数据用归档表（`{表}_archive`），不用 `deleted_at`
+
+---
+
 ## 五、环境变量
 
 - 全部 `UPPER_SNAKE_CASE`
 - 按用途加前缀：
   - `DB_*` 数据库
-  - `API_*` Fastify 后端
-  - `ENGINE_*` Python engine
+  - `API_*` Fastify 后端（pulse-api）
+  - `CORE_*` Python 计算引擎（pulse-core）
   - `TUSHARE_*` Tushare 客户端
   - `JWT_*` 鉴权
+  - `WEWORK_*` 企业微信通道
+  - `EMAIL_*` 邮件通道
+  - `TELEGRAM_*` Telegram 通道（留口子）
 - 前端公开变量（Vite）必须以 `VITE_` 开头
 - 敏感值（token、密码）只放 `.env`，**禁止**提交；样板写在 `.env.example` 并用 `your_xxx_here` 占位
 
@@ -300,13 +382,13 @@ export type ResonanceItem = z.infer<typeof resonanceItemSchema>;
 
 - 格式：`{type}({scope}): {subject}`
 - `type`：`feat` / `fix` / `chore` / `docs` / `refactor` / `perf` / `test` / `build` / `ci`
-- `scope`：顶层目录名 —— `api` / `web` / `engine` / `db` / `notify` / `infra` / `docs`
+- `scope`：顶层目录名 —— `core` / `api` / `web` / `db` / `docs` / `infra`
 - `subject`：中文或英文皆可，**祈使语气**，不加句号
 - 示例：
-  - `feat(picks): add resonance endpoint`
-  - `fix(engine): handle empty df in daily_basic_cn`
+  - `feat(core): add macd cross strategy`
+  - `fix(api): handle empty picks in resonance query`
   - `chore(db): add 010 migration for daily_picks.rank`
-  - `docs(naming): 初版命名规范落地`
+  - `docs(arch): 重构架构文档 v2`
 
 ---
 
@@ -316,29 +398,34 @@ export type ResonanceItem = z.infer<typeof resonanceItemSchema>;
 
 - [ ] `db/migrations/0YY_create_xxx_cn.sql`
 - [ ] 表头写清用途 + 主键意图 + 单位换算
-- [ ] `engine/ingestion/xxx_cn.py`（**同名**）
-- [ ] `engine/sql/verify_xxx_cn.sql`
-- [ ] `README.md` 数据清单表更新（优先级 / 体量预估）
+- [ ] `pulse-core/pulse_core/ingestion/xxx_cn.py`（**同名**）
+- [ ] `pulse-core/sql/verify_xxx_cn.sql`
 - [ ] 若有跨表 JOIN：在 ingestion 的 SELECT 中保持列序、命名一致
 
 ### 7.2 新增选股策略
 
-- [ ] `engine/screener/{strategy_key}.py`
-- [ ] 类名 `{StrategyKeyPascalCase}Screener`，`name = "{strategy_key}"`
-- [ ] `engine/screener/runner.py` 的 `SCREENERS` 列表注册
-- [ ] `engine/tests/test_{strategy_key}.py`
-- [ ] `web/src/lib/strategy-meta.ts` 增加 key 为 `{strategy_key}` 的元数据条目（label / description / badgeClass / barClass）
+- [ ] `pulse-core/pulse_core/screener/strategies/{strategy_key}.py`
+- [ ] 类名 `{StrategyKeyPascalCase}Strategy`，`name = "{strategy_key}"`
+- [ ] 在某个 `pulse-core/pulse_core/screener/tracks/{track}.yaml` 注册
+- [ ] `pulse-core/tests/test_{strategy_key}.py`
+- [ ] `pulse-web/src/lib/strategy-meta.ts` 增加 key 为 `{strategy_key}` 的元数据条目
 - [ ] DB 不需改 schema（`daily_picks.strategy` 是字符串列）
 - [ ] 验证：`SELECT DISTINCT strategy FROM daily_picks` 应能查到新值
 
 ### 7.3 新增 API 端点
 
-- [ ] `api/src/domains/{feature}/`：补 routes / service / repository / schemas
+- [ ] `pulse-api/src/domains/{feature}/`：补 routes / service / repository / schemas
 - [ ] Zod schema 字段 camelCase，repository 负责 snake → camel 转换
-- [ ] `web/src/lib/api/{feature}.ts`：导出 `getXxx` / `postXxx` 等函数
-- [ ] `web/src/types/{feature}.ts`：导出对应 TS 类型（**与后端 Zod 推导类型保持字段一致**）
-- [ ] `web/src/hooks/use-{feature}.ts`：封装数据获取
-- [ ] 页面：`web/src/pages/{feature}/{view}.tsx`
+- [ ] `pulse-web/src/lib/api/{feature}.ts`：导出 `getXxx` / `postXxx` 等函数
+- [ ] `pulse-web/src/types/{feature}.ts`：导出对应 TS 类型（**与后端 Zod 推导类型保持字段一致**）
+- [ ] `pulse-web/src/hooks/use-{feature}.ts`：封装数据获取
+- [ ] 页面：`pulse-web/src/pages/{feature}/{view}.tsx`
+
+### 7.4 新增通知事件
+
+- [ ] `pulse-core` 写 `notifications_outbox`（`scheduled_at` = 次日 07:00）
+- [ ] `pulse-api/src/notifier/briefing.ts` 增加该事件的聚合规则
+- [ ] 新通道实现放在 `pulse-api/src/notifier/channels/{channel}.ts`
 
 ---
 
@@ -357,8 +444,8 @@ ResonanceCard.tsx   // 应为 resonance-card.tsx
 ```
 
 ```python
-# ❌ Screener 类属性 name 用 camel / Pascal
-class MACDCrossScreener(Screener):
+# ❌ Strategy 类属性 name 用 camel / Pascal
+class MACDCrossStrategy(Strategy):
     name = "MACDCross"   # 应为 "macd_cross"
 ```
 
@@ -367,9 +454,9 @@ class MACDCrossScreener(Screener):
 CREATE TABLE daily (...);   -- 应为 daily_cn
 
 -- ❌ ingestion 文件名与表名不一致
--- 文件：engine/ingestion/sync_daily.py
+-- 文件：pulse-core/pulse_core/ingestion/sync_daily.py
 -- 表名：daily_cn
--- → 应改为 engine/ingestion/daily_cn.py
+-- → 应改为 pulse-core/pulse_core/ingestion/daily_cn.py
 ```
 
 ```
@@ -398,3 +485,4 @@ TS:     "MacdCross"
 | 日期 | 版本 | 变更 | 作者 |
 |---|---|---|---|
 | 2026-05-18 | v1.0 | 基于现有代码沉淀首版 | Atlas |
+| 2026-05-21 | v2.0 | 三服务重命名（engine/api/web → pulse-core/pulse-api/pulse-web）；Screener → Strategy + 新增 Filter/Track 契约；新增 §4.5 JSONB 边界 + §4.6 软删除规则；环境变量前缀 `ENGINE_` → `CORE_`；commit scope 同步 | Atlas |
