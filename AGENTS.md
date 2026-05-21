@@ -110,7 +110,7 @@ pulse-web/src/
 - 改前先 grep 类似模式（与现有风格一致 > 发明新风格）
 - 改完 TS：`pnpm typecheck` + `pnpm lint` 必须过
 - 改完 Python：`uv run pytest tests/test_xxx.py`
-- 改完 SQL migration：本地 `pnpm migrate` 跑通 + 写 `verify_xxx.sql`
+- 改完 SQL migration：根目录 `pnpm db:migrate` 跑通 + 写 `verify_xxx.sql`
 - 跨语言契约改动（策略 key / 字段重命名）→ **三层同步**改
 
 ---
@@ -150,8 +150,10 @@ ingestion/sync_daily.py                          -- 应 daily_cn.py
 ## 7. 运行命令
 
 ```bash
+# 所有命令在仓库根目录执行（pnpm workspace）
+
 # DB migration
-cd pulse-api && pnpm migrate
+pnpm db:migrate
 
 # 数据同步
 cd pulse-core
@@ -162,12 +164,12 @@ uv run python -m pulse_core.ingestion.daily_cn
 uv run python -m pulse_core.screener.runner --date 2026-05-21
 
 # 启动
-cd pulse-api && pnpm dev
-cd pulse-web && pnpm dev
+pnpm api:dev
+pnpm web:dev
 
 # 校验
-cd pulse-api && pnpm typecheck && pnpm lint
-cd pulse-web && pnpm typecheck && pnpm lint
+pnpm api:typecheck && pnpm api:lint
+pnpm web:typecheck && pnpm web:lint
 cd pulse-core && uv run pytest
 ```
 

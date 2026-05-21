@@ -53,23 +53,26 @@ pulse-web/    TypeScript · pnpm · 前端展示
 
 ## 快速跑起来
 
-> **当前状态**：项目正在重构（分支 `refactor/v2-rebuild`），目录骨架未建立。
+> **当前状态**：项目正在重构（分支 `refactor/v2-rebuild`）。
+> `pulse-web` + `pulse-api` 骨架已建立，`pulse-core` 待搭建。
 > 老代码在 [`bak/`](bak/) 下保留。
 
 ### 环境要求
 
-- Node.js 20+ / pnpm 9+
+- Node.js 22+ / pnpm 10+
 - Python 3.12+ / uv
 - PostgreSQL 16+
 - Tushare token
 
-### 启动（重构完成后）
+### 启动
 
 ```bash
-# DB
-cd pulse-api && pnpm migrate
+# 所有命令在仓库根目录执行（pnpm workspace）
 
-# 数据同步（傍晚 18:30 cron）
+# DB（建表）
+pnpm db:migrate
+
+# 数据同步（傍晚 18:30 cron，待 pulse-core 落地）
 cd pulse-core
 uv run python -m pulse_core.ingestion.stocks_cn
 uv run python -m pulse_core.ingestion.daily_cn
@@ -78,8 +81,8 @@ uv run python -m pulse_core.ingestion.daily_cn
 uv run python -m pulse_core.screener.runner --date 2026-05-21
 
 # 启动 API + Web
-cd pulse-api && pnpm dev
-cd pulse-web && pnpm dev
+pnpm api:dev
+pnpm web:dev
 ```
 
 完整命令 → [`AGENTS.md`](AGENTS.md) §7。
