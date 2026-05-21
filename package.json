@@ -10,9 +10,21 @@
     "web:lint": "pnpm --filter pulse-web lint",
     "web:lint:fix": "pnpm --filter pulse-web lint:fix",
     "web:format": "pnpm --filter pulse-web format",
+    "api:dev": "pnpm --filter pulse-api dev",
+    "api:build": "pnpm --filter pulse-api build",
+    "api:start": "pnpm --filter pulse-api start",
+    "api:typecheck": "pnpm --filter pulse-api typecheck",
+    "api:lint": "pnpm --filter pulse-api lint",
+    "db:migrate": "tsx --env-file=.env db/scripts/migrate.ts",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "format": "pnpm -r format"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/pg": "^8.20.0",
+    "pg": "^8.20.0",
+    "tsx": "^4.21.0"
   },
   "packageManager": "pnpm@10.33.2"
 }
