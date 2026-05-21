@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import { randomUUID } from "node:crypto";
 import { env } from "./config/env.js";
 import { closePool } from "./adapters/db/pool.js";
 import corsPlugin from "./plugins/cors.js";
@@ -15,6 +16,7 @@ import { evaluationsRoutes } from "./domains/evaluations/routes.js";
 import { outboxRoutes } from "./domains/outbox/routes.js";
 
 const app = Fastify({
+  genReqId: () => randomUUID(),
   logger: {
     transport: {
       target: "pino-pretty",
