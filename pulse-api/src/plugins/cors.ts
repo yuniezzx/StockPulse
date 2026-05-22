@@ -5,7 +5,7 @@ import { env } from "../config/env.js";
 
 const corsPlugin: FastifyPluginAsync = async (app) => {
   await app.register(fastifyCors, {
-    origin: env.CORS_ORIGINS,
+    origin: env.API_CORS_ORIGINS,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["content-type", "authorization"],
   });
