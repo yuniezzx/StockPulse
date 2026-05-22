@@ -72,12 +72,12 @@ pulse-web/    TypeScript · pnpm · 前端展示
 # DB（建表）
 pnpm db:migrate
 
-# 数据同步（傍晚 18:30 cron，待 pulse-core 落地）
+# 数据同步（傍晚 18:30 由 APScheduler 触发，待 pulse-core 落地）
 cd pulse-core
 uv run python -m pulse_core.ingestion.stocks_cn
 uv run python -m pulse_core.ingestion.daily_cn
 
-# 选股（傍晚 18:35 cron）
+# 选股（傍晚 18:35 由 APScheduler 触发）
 uv run python -m pulse_core.screener.runner --date 2026-05-21
 
 # 启动 API + Web
@@ -97,7 +97,7 @@ pnpm web:dev
 | API | TypeScript + Fastify | 与前端共享类型 |
 | 前端 | React + Vite + shadcn/ui | 现代、轻量 |
 | DB | PostgreSQL | 单一存储（不引 Redis） |
-| 调度 | OS cron | 简单稳定 |
+| 调度 | APScheduler | 跨平台、进程内、cron 语法 |
 | 通知 | 企业微信群机器人 + 邮件 + Telegram | 多通道 |
 
 不引入：Redis / Airflow / Prefect / 消息队列 — 单人项目过度工程。

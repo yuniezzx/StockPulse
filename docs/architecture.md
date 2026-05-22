@@ -279,7 +279,7 @@ StockPulse/
 │   │   ├── evaluation/               ⑤ 策略校验
 │   │   ├── weights/                  ⑥ 权重建议
 │   │   ├── outbox/                   通知出箱（原 notify/）
-│   │   └── scheduler/                任务编排（OS cron 调度）
+│   │   └── scheduler/                任务编排（APScheduler 常驻进程）
 │   └── tests/
 │
 ├── pulse-api/                        TypeScript · pnpm · Fastify
@@ -358,7 +358,7 @@ StockPulse/
 |---|---|
 | 跨服务通信 | PG（outbox + 状态字段） |
 | 缓存热数据 | PG shared_buffers（2GB 配置） |
-| 异步队列 | PG outbox + cron 扫描 |
+| 异步队列 | PG outbox + APScheduler 扫描 |
 
 **理由**：单人项目，64GB 内存还要给其他服务用，Redis 引入额外运维成本不值得。
 
@@ -366,17 +366,27 @@ StockPulse/
 
 - 任务量少（每日 5-10 个 job）
 - 依赖关系简单（串行为主）
-- **OS cron 足够**，配合 `pulse-core/scheduler/` 的 Python 入口脚本
+- **APScheduler 足够**，配合 `pulse-core/scheduler/daemon.py` 常驻进程
 
-### 7.3 为什么 OS cron
+### 7.3 为什么 APScheduler
+
+**约束**：StockPulse 需跨平台运行（Windows / Linux / macOS 均要能跑），OS 级调度方案（cron / Task Scheduler / systemd timer）需要为每个平台维护一套配置，不可接受。
 
 | 备选 | 否决理由 |
 |---|---|
-| Airflow | 过度工程 |
-| Prefect | 过度工程 |
-| APScheduler | 进程内调度，不如 OS 级稳定 |
-| systemd timer | 跨平台差 |
-| **OS cron** | ✅ 简单、稳定、可视化（crontab -l） |
+| Airflow / Prefect | 过度工程 |
+| OS cron | ❌ 仅 Unix；Windows 需另写 Task Scheduler 配置 |
+| Windows Task Scheduler | ❌ 仅 Windows |
+| systemd timer | ❌ 仅 Linux |
+| Celery beat | 过度工程（需要 broker） |
+| **APScheduler** | ✅ 纯 Python、跨平台、cron 语法、单进程常驻 |
+
+**落地形态**：
+- `pulse-core/pulse_core/scheduler/daemon.py` —— `BlockingScheduler` 常驻进程，**不开 HTTP**（架构红线 §3.2）
+- 启动：`uv run python -m pulse_core.scheduler.daemon`（任何平台同一命令）
+- 生产保活：systemd / Windows 服务 / pm2，按部署平台自选
+
+**代价与取舍**：APScheduler 为进程内调度，进程挂掉不会像 OS cron 那样由系统自动续跑。单人项目场景下可接受——进程挂了早报收不到立刻可知。pulse-api 一侧的 07:00 早报发送仍走 Fastify 进程内 cron（fastify-cron），不变。
 
 ### 7.4 硬件预算
 
