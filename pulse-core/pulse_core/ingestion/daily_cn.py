@@ -15,18 +15,16 @@
 """
 
 import asyncio
-from datetime import date, timedelta
 
 import pandas as pd
 from loguru import logger
 
-from pulse_core.lib.config import HISTORY_START_DATE
 from pulse_core.lib.converters import scale, to_float
 from pulse_core.lib.dates import parse_date
 from pulse_core.lib.db import acquire, close_pool
 from pulse_core.lib.tushare_client import get_pro_client, tushare_retry
 
-from ._base import PROGRESS_INTERVAL, SLEEP_BETWEEN_CALLS, fetch_trading_days
+from ._base import PROGRESS_INTERVAL, SLEEP_BETWEEN_CALLS, fetch_trading_days, resolve_date_range
 from ._cli import IngestionArgs, parse_args
 
 _UPSERT_SQL = """
@@ -77,32 +75,13 @@ def _df_to_rows(df: pd.DataFrame) -> list[tuple]:
     return rows
 
 
-async def _resolve_range(args: IngestionArgs) -> tuple[date, date]:
-    """Resolve sync range from CLI override or DB incremental state."""
-    end = args.end or date.today()
-    if args.start:
-        return args.start, end
-
-    async with acquire() as conn:
-        max_trade_date = await conn.fetchval("SELECT MAX(trade_date) FROM daily_cn")
-
-    if max_trade_date is None:
-        return HISTORY_START_DATE, end
-
-    return max_trade_date + timedelta(days=1), end
-
-
 async def sync_daily_cn(args: IngestionArgs) -> int:
     """Sync A-share daily OHLCV data into daily_cn."""
-    start, end = await _resolve_range(args)
-    logger.info(f"daily_cn sync range: {start} -> {end} (dry_run={args.dry_run})")
-
-    if start > end:
-        logger.info("Range is empty (start > end); nothing to do")
-        return 0
-
     async with acquire() as conn:
+        start, end = await resolve_date_range(conn, "daily_cn", args.start, args.end)
         trading_days = await fetch_trading_days(conn, start, end)
+
+    logger.info(f"daily_cn sync range: {start} -> {end} (dry_run={args.dry_run})")
 
     if not trading_days:
         logger.info("No trading days in range; nothing to do")
