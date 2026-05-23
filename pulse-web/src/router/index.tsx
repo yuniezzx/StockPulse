@@ -1,3 +1,12 @@
+/**
+ * Router: 路由树 + 鉴权门控。
+ *
+ * 两层守卫：
+ *   GuestRoute      已登录则 redirect 到 /，用于 /login & /register
+ *   ProtectedRoute  未登录则 redirect 到 /login，校验 token 后渲染 AppLayout
+ *
+ * 通配 "*" 兜底到 "/"，避免脏 URL 直接显示空白。
+ */
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";

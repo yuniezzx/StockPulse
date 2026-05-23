@@ -1,3 +1,13 @@
+/**
+ * HTTP client: pulse-web 与 pulse-api 之间的唯一出口。
+ *
+ * 所有 lib/api/*.ts 的请求函数都走 apiFetch，统一负责：
+ *   - 注入 JWT（从 zustand auth store 读取）
+ *   - 反序列化失败兜底（502/网关 HTML 响应不会让 data.error 抛 TypeError）
+ *   - 把非 2xx 翻译成 ApiError（statusCode + error name + message + zod issues）
+ *
+ * 调用方按 `instanceof ApiError` 判错（见 pages/login.tsx 的用法）。
+ */
 import { useAuthStore } from "@/store/auth";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -32,7 +42,6 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     },
   });
 
-  // 解析 JSON 失败兜底为空对象，避免 502/网关错误页面响应导致 data.error 报错
   const data = (await res.json().catch(() => ({}))) as {
     error?: string;
     message?: string;

@@ -1,3 +1,14 @@
+/**
+ * ProtectedRoute: 校验 token 后才渲染子路由。
+ *
+ * 三态状态机（避免 token 失效时闪现内部页面）：
+ *   checking         调用 getMe()，渲染 loading 占位
+ *   ok               getMe 成功 -> Outlet 渲染受保护页面
+ *   unauthenticated  401 或无 token -> Navigate 到 /login
+ *   network-error    其他错误 -> 错误提示而非跳转（避免登录态被网络问题误清）
+ *
+ * cancelled 标志位防 unmount 后 setState（StrictMode 双调用安全）。
+ */
 import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "@/store/auth";

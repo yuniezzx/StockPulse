@@ -1,3 +1,9 @@
+/**
+ * Track（赛道）元数据：超短 / 波段 / 中线三档。
+ *
+ * 赛道是顶层分类，对应不同持仓周期与策略偏好。
+ * key 与 pulse-core 的 screener/tracks/{key}.yaml 完全一致（AGENTS.md §1 跨语言契约）。
+ */
 export type TrackKey = "scalp" | "swing" | "position";
 
 export interface TrackMeta {
