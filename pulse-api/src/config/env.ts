@@ -1,3 +1,10 @@
+/**
+ * Environment variable schema + parse-once singleton.
+ *
+ * 启动期 fail-fast：env 不合法直接 process.exit(1)，避免后续运行时报错难定位。
+ * .env 由 pnpm workspace 在仓库根目录加载（dotenv-cli / docker-compose），
+ * 本文件只负责 schema 校验，不负责加载。
+ */
 import { z } from "zod";
 
 const Schema = z.object({

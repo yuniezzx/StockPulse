@@ -1,3 +1,13 @@
+/**
+ * PostgreSQL connection pool (node-postgres).
+ *
+ * pulse-api 唯一的 DB 访问出口。所有 SQL 查询通过 `query()` 走这里，
+ * 便于统一观察连接池压力 + 集中处理参数化查询。
+ *
+ * 命名边界（AGENTS.md §1 红线）：
+ *   DB 列名 snake_case，由 repository 层负责 snake -> camel 转换；
+ *   snake_case 字段禁止泄漏到 service / route / 前端。
+ */
 import { Pool, type QueryResult, type QueryResultRow } from "pg";
 import { env } from "../../config/env.js";
 

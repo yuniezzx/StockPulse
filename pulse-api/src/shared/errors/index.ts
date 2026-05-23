@@ -1,3 +1,9 @@
+/**
+ * Domain error hierarchy: 每个子类对应一个 HTTP 状态码。
+ *
+ * service 层抛出 DomainError 子类，由 plugins/error-handler.ts 翻译成 HTTP 响应。
+ * 这样 service 不依赖 fastify 类型，单测好写；route 层也几乎不需要 try/catch。
+ */
 export abstract class DomainError extends Error {
   abstract readonly statusCode: number;
 

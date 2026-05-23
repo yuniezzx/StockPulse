@@ -1,3 +1,12 @@
+/**
+ * JWT plugin: 注册 @fastify/jwt + 暴露 `app.authenticate` preHandler。
+ *
+ * Token 载荷只放 `userId`（PublicUser 的不可变主键），不含 username 等可变字段，
+ * 避免用户改名后 token 失效或显示陈旧信息。`/auth/me` 在每次请求时回查最新用户。
+ *
+ * 路由用法：
+ *   app.get("/me", { onRequest: [app.authenticate] }, ...)
+ */
 import fastifyJwt from "@fastify/jwt";
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";

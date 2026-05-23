@@ -1,3 +1,11 @@
+/**
+ * Global error handler: 把异常翻译成稳定的 JSON 响应。
+ *
+ * 三层错误分类：
+ *   ZodError      -> 400 ValidationError + issues（让前端能定位字段）
+ *   DomainError   -> 子类自带的 statusCode（401/404/409 等业务错误）
+ *   其余未知错误  -> 500 InternalServerError + log.error（不向客户端泄漏内部信息）
+ */
 import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
 import { ZodError } from "zod";

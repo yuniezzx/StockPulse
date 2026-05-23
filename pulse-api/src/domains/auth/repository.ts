@@ -1,3 +1,10 @@
+/**
+ * Auth repository: `users` 表的数据访问层。
+ *
+ * 这里是 snake_case <-> camelCase 的边界：
+ *   - 返回的 `UserRow` 保留 DB 原字段名（password_hash / created_at 等）
+ *   - service 层负责调用 toPublicUser() 转成 camelCase 后再向上传递
+ */
 import { query } from "../../adapters/db/pool.js";
 
 export interface UserRow {

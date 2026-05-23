@@ -1,3 +1,17 @@
+/**
+ * pulse-api HTTP server entry point.
+ *
+ * 启动顺序（register 顺序决定中间件链）：
+ *   cors -> jwt -> error-handler -> /auth -> 各业务 domain -> /health
+ *
+ * 优雅停机（SIGINT/SIGTERM/uncaughtException/unhandledRejection）：
+ *   1. app.close() 关闭 HTTP server，拒绝新连接、等已有请求结束
+ *   2. closePool() 关闭 pg 连接池
+ *   3. 10s 超时后强制退出（兜底，避免悬挂）
+ *
+ * 8 个业务 domain 目前多为占位（routes 内 export 空函数），随业务推进逐步填充；
+ * 边界规则见 AGENTS.md §2：pulse-api 写圈 4 用户数据 + 转发计算结果，不做重计算。
+ */
 import Fastify from "fastify";
 import { randomUUID } from "node:crypto";
 import { env } from "./config/env.js";

@@ -1,3 +1,12 @@
+/**
+ * Auth service: 注册 / 登录 / 获取当前用户。
+ *
+ * 职责边界：
+ *   - 密码哈希（bcrypt，SALT_ROUNDS=10）
+ *   - 把 repository 返回的 snake_case UserRow 转成 camelCase PublicUser
+ *   - 把 PG unique violation (23505) 翻译成 ConflictError
+ *   - 签发 JWT 通过依赖注入的 signToken（解耦于 fastify 实例）
+ */
 import bcrypt from "bcrypt";
 import { ConflictError, UnauthorizedError } from "../../shared/errors/index.js";
 import * as repository from "./repository.js";
@@ -25,8 +34,6 @@ function isPgUniqueViolation(err: unknown): boolean {
     (err as { code: unknown }).code === PG_UNIQUE_VIOLATION
   );
 }
-
-// ========================== 业务函数 ==========================
 
 export async function register(input: RegisterBody, signToken: SignToken): Promise<AuthSuccess> {
   const passwordHash = await bcrypt.hash(input.password, SALT_ROUNDS);

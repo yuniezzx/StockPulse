@@ -1,3 +1,10 @@
+/**
+ * Auth Zod schemas + inferred types.
+ *
+ * 同时充当请求体验证（registerBodySchema / loginBodySchema）和响应契约
+ * （authSuccessSchema / meResponseSchema）。字段命名严格 camelCase，
+ * 与 pulse-web/src/lib/api/auth.ts 的 interface 对齐（AGENTS.md §1 跨语言契约）。
+ */
 import { z } from "zod";
 
 export const registerBodySchema = z.object({
