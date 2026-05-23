@@ -286,6 +286,7 @@ export type ResonanceItem = z.infer<typeof resonanceItemSchema>;
 | 总分 | `total_score`（聚合产生） | `total_score` | `totalScore` | 视图 / 查询级别字段 |
 | 共振数 | `strategy_count`（聚合产生） | `strategy_count` | `strategyCount` | |
 | 创建时间 | `created_at` | `created_at` | `createdAt` | `TIMESTAMPTZ` ↔ ISO 字符串 |
+| 任务名 | `job_name` | `job_name` | `jobName` | snake_case，registry / DB / API 三层完全相同（详见 §4.7） |
 
 ---
 
@@ -347,6 +348,48 @@ interface PickDetail {
 圈 1/2/3 的自动数据（`daily_cn` / `daily_picks` / `risk_signals` 等）**禁止**软删除：
 - 重跑覆盖（`ON CONFLICT DO UPDATE`）或硬删重写
 - 历史数据用归档表（`{表}_archive`），不用 `deleted_at`
+
+---
+
+## 四点七、定时任务命名（`job_name`）
+
+**规则**：所有写入 `job_runs.job_name` 的标识符必须遵守:
+
+1. **snake_case**：纯小写字母 + 下划线 + 数字
+2. **命名按任务类型分两类**：
+   - **同步类任务（拉表）**：`sync_{table_name}`，如 `sync_stocks_cn` ✅、`sync_daily_cn` ✅
+   - **领域批量动作（聚合 / 选股 / 风控等）**：用领域名词或「领域+动作名词」，如 `evening_ingestion` ✅、`morning_briefing` ✅、`screener_runner` ✅、`risk_scan` ✅
+3. **绝对禁止**：
+   - 与表名反序：`stocks_cn_sync` ❌（应 `sync_stocks_cn`）
+   - 同步类动词后置：`daily_cn_sync` ❌
+   - 加无意义后缀 `_job` / `_task` / `_cron` / `_handler`
+4. **三层一致**：DB `job_name` 值 ↔ Python `registry.register("...", handler)` 第一个参数 ↔ pulse-api `POST /jobs/{job_name}/trigger` 路径段，**三者字面完全一致**
+5. **最大 64 字符**（`VARCHAR(64)` 字段限制）
+
+**示例**：
+
+| 场景 | 分类 | ✅ 推荐 | ❌ 反例 |
+|---|---|---|---|
+| 同步单表 | 同步类 | `sync_stocks_cn` | `stocks_cn_sync` / `syncStocks` |
+| 批量子任务串行 | 领域批量 | `evening_ingestion` | `evening_jobs` / `daily_data` |
+| 跑选股 | 领域批量 | `screener_runner` | `screening` / `run_picks` |
+| 跑风控扫描 | 领域批量 | `risk_scan` | `risk` / `check_risk` |
+| 发早报 | 领域批量 | `morning_briefing` | `send_morning_email` |
+
+**反模式**（❌ 禁止）：
+
+```python
+# ❌ camelCase / PascalCase
+registry.register("syncStocksCn", handler)
+registry.register("EveningIngestion", handler)
+
+# ❌ 加无意义后缀
+registry.register("sync_stocks_cn_job", handler)
+registry.register("evening_ingestion_task", handler)
+
+# ❌ 同步类动词后置（与表名顺序反）
+registry.register("stocks_cn_sync", handler)
+```
 
 ---
 
@@ -486,3 +529,5 @@ TS:     "MacdCross"
 |---|---|---|---|
 | 2026-05-18 | v1.0 | 基于现有代码沉淀首版 | Atlas |
 | 2026-05-21 | v2.0 | 三服务重命名（engine/api/web → pulse-core/pulse-api/pulse-web）；Screener → Strategy + 新增 Filter/Track 契约；新增 §4.5 JSONB 边界 + §4.6 软删除规则；环境变量前缀 `ENGINE_` → `CORE_`；commit scope 同步 | Atlas |
+| 2026-05-23 | v2.1 | 新增 §4.7 定时任务命名规则；§四 跨语言契约表增加 `job_name` 行 | Atlas |
+| 2026-05-23 | v2.2 | §4.7 重写：拆分「同步类 / 领域批量」两类命名（消除 v2.1 「动词在前」与示例 `screener_runner` / `evening_ingestion` 的自相矛盾） | Atlas |

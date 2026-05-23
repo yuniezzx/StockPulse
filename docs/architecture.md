@@ -79,12 +79,13 @@ A 股短中线**个人**选股决策系统：每天傍晚同步数据 → 多策
 ```
 ① pulse-core 写自动数据，pulse-api 写用户数据，互不重叠
 ② pulse-api 不做重业务计算（薄路由 + 编排）
-③ pulse-web 零业务计算（取数 + 展示）
+③ pulse-web 零业务计算(取数 + 展示)
 ④ pulse-core 不开 HTTP 给 pulse-web（前端只通过 pulse-api）
 ⑤ 用户主动触发的计算 → 提前算好走 DB（不引入 Redis）
 ⑥ 虚拟持仓由 pulse-core 在选股事务内创建（同事务原子写入）
 ⑦ 通知用 outbox 模式（pulse-core 写表，pulse-api 发）
 ⑧ 通知通道：企业微信群机器人(P0) + 邮件(P1) + Telegram(P2 留口子)
+⑨ `job_runs` 表写权限例外：pulse-api 可 INSERT `status='pending'` 的行（用户手动触发入口），UPDATE 仍归 pulse-core worker
 ```
 
 ### 3.3 为什么这样切
@@ -152,10 +153,11 @@ Tushare
 ② 4 个圈层职责清晰、互不污染
 ③ pulse-core 写圈 1/2/3，pulse-api 写圈 4
 ④ 关键事务：选股 + 虚拟仓 + outbox 同事务原子写入
-⑤ 通知节奏：傍晚 18:30 写 outbox（scheduled_at = 次日 07:00）
+⑤ 通知节奏：早报聚合（scheduled_at = 次日 07:00）；运维告警（job 失败等）立即（scheduled_at = NOW()）
 ⑥ 通知聚合：pulse-api 发送时合并多事件为一条早报
 ⑦ ⑥ 权重模式：半自动（系统建议 + 用户审核确认）
 ⑧ 风控延迟：次日早晨级（不做盘中分钟级）
+⑨ 任务可观测：所有定时/手动任务运行记录写入 `job_runs`（scheduler 写 pending，worker 跑并更新状态）
 ```
 
 ---
@@ -279,7 +281,12 @@ StockPulse/
 │   │   ├── evaluation/               ⑤ 策略校验
 │   │   ├── weights/                  ⑥ 权重建议
 │   │   ├── outbox/                   通知出箱（原 notify/）
-│   │   └── scheduler/                任务编排（APScheduler 常驻进程）
+│   │   └── scheduler/                任务编排（scheduler + worker + job_runs 三件套）
+│   │       ├── daemon.py             常驻进程入口（同时跑 scheduler 和 worker）
+│   │       ├── cron.py               AsyncIOScheduler 定义（到点写 pending 行）
+│   │       ├── worker.py             轮询 job_runs 并执行 handler
+│   │       ├── registry.py           job_name → handler 注册中心
+│   │       └── jobs/                 handler 实现（一个领域一文件）
 │   └── tests/
 │
 ├── pulse-api/                        TypeScript · pnpm · Fastify
@@ -368,9 +375,11 @@ StockPulse/
 - 依赖关系简单（串行为主）
 - **APScheduler 足够**，配合 `pulse-core/scheduler/daemon.py` 常驻进程
 
-### 7.3 为什么 APScheduler
+### 7.3 为什么 APScheduler + 自建 worker（方案 B）
 
 **约束**：StockPulse 需跨平台运行（Windows / Linux / macOS 均要能跑），OS 级调度方案（cron / Task Scheduler / systemd timer）需要为每个平台维护一套配置，不可接受。
+
+**调度器选型**：
 
 | 备选 | 否决理由 |
 |---|---|
@@ -381,10 +390,41 @@ StockPulse/
 | Celery beat | 过度工程（需要 broker） |
 | **APScheduler** | ✅ 纯 Python、跨平台、cron 语法、单进程常驻 |
 
+**执行模型：scheduler/worker 分离（方案 B）**
+
+APScheduler 不直接调用 handler，而是写一行 `job_runs` `status='pending'`，由 worker 异步执行。理由：
+
+| 需求 | 仅用 APScheduler（方案 A）能否满足 | 方案 B 解 |
+|---|---|---|
+| 运行历史可观测（pulse-api 能查上次跑成功没） | ❌ 只在日志 | ✅ 查 `job_runs` 表 |
+| 手动触发（用户在 web 点"立刻同步一次"） | ❌ 进程内函数 pulse-api 调不到 | ✅ pulse-api INSERT 一行 pending，worker 自动捞起 |
+| 失败通知（job 挂了立即告警） | ❌ 异常只能进程内 try/except | ✅ worker 标 failed 时同事务写 outbox |
+| 崩溃恢复（daemon 重启后 stuck running 行） | ❌ 需要自建状态机 | ✅ 启动时 reap `status='running'` → `failed` |
+
 **落地形态**：
-- `pulse-core/pulse_core/scheduler/daemon.py` —— `BlockingScheduler` 常驻进程，**不开 HTTP**（架构红线 §3.2）
+
+- `pulse-core/pulse_core/scheduler/daemon.py` —— 常驻进程入口
+  - `asyncio.run()` 同时跑 `AsyncIOScheduler`（定时写表）+ `worker`（轮询执行）
+  - **不开 HTTP**（架构红线 §3.2 ④）
+  - SIGTERM/SIGINT 收到后，等当前 handler 自然结束才退出（部署时 `stop_grace_period: 600s`）
+- `pulse-core/pulse_core/scheduler/cron.py` —— APScheduler 定义
+  - `AsyncIOScheduler`（**非** `BlockingScheduler`，与 worker 同 event loop）
+  - 触发器只调 `enqueue_cron(job_name, now)`，**不执行业务逻辑**
+  - 幂等：`job_runs` 表上 `(job_name, scheduled_at) WHERE trigger_source='cron'` partial unique index 防止 misfire 重复入队
+- `pulse-core/pulse_core/scheduler/worker.py` —— 执行循环
+  - `SELECT ... FOR UPDATE SKIP LOCKED` + 1 秒轮询
+  - 并发 = 1（Tushare 限流，串行执行）
+  - handler 异常被兜底为 `status='failed'`，不让 worker 死
 - 启动：`uv run python -m pulse_core.scheduler.daemon`（任何平台同一命令）
 - 生产保活：systemd / Windows 服务 / pm2，按部署平台自选
+
+**当前 cron 表**:
+
+| job_name | 时刻 | 用途 |
+|---|---|---|
+| `sync_trade_cal_cn` | 18:00 daily | 同步交易日历（为次日盘前准备） |
+| `sync_stocks_cn` | 18:02 daily | 同步股票列表（新股 / 退市，错开 2 分钟避免与 sync_trade_cal_cn 同秒入队） |
+| `evening_ingestion` | 18:30 daily | 拉日线 / 复权 / 涨跌停 / 估值 / 资金流（5 子任务串行，支持 partial） |
 
 **代价与取舍**：APScheduler 为进程内调度，进程挂掉不会像 OS cron 那样由系统自动续跑。单人项目场景下可接受——进程挂了早报收不到立刻可知。pulse-api 一侧的 07:00 早报发送仍走 Fastify 进程内 cron（fastify-cron），不变。
 

@@ -54,7 +54,7 @@ pulse-web/    TypeScript · pnpm · 前端展示
 ## 快速跑起来
 
 > **当前状态**：项目正在重构（分支 `refactor/v2-rebuild`）。
-> `pulse-web` + `pulse-api` 骨架已建立，`pulse-core` 待搭建。
+> `pulse-core` 数据同步 + scheduler/worker 已落地（migration 001-010）；`pulse-web` + `pulse-api` 骨架已建立。
 > 老代码在 [`bak/`](bak/) 下保留。
 
 ### 环境要求
@@ -72,12 +72,15 @@ pulse-web/    TypeScript · pnpm · 前端展示
 # DB（建表）
 pnpm db:migrate
 
-# 数据同步（傍晚 18:30 由 APScheduler 触发，待 pulse-core 落地）
+# 数据同步（首次拉历史数据，手动跑一次）
 cd pulse-core
 uv run python -m pulse_core.ingestion.stocks_cn
 uv run python -m pulse_core.ingestion.daily_cn
 
-# 选股（傍晚 18:35 由 APScheduler 触发）
+# 定时任务常驻进程（之后每天 18:00 / 18:30 自动同步）
+uv run python -m pulse_core.scheduler.daemon
+
+# 选股（傍晚 18:35 触发，由 scheduler 在选股 Step 上线后写入 job_runs）
 uv run python -m pulse_core.screener.runner --date 2026-05-21
 
 # 启动 API + Web
@@ -97,7 +100,7 @@ pnpm web:dev
 | API | TypeScript + Fastify | 与前端共享类型 |
 | 前端 | React + Vite + shadcn/ui | 现代、轻量 |
 | DB | PostgreSQL | 单一存储（不引 Redis） |
-| 调度 | APScheduler | 跨平台、进程内、cron 语法 |
+| 调度 | APScheduler + 自建 worker | 跨平台、进程内、`job_runs` 表持久化运行流水 |
 | 通知 | 企业微信群机器人 + 邮件 + Telegram | 多通道 |
 
 不引入：Redis / Airflow / Prefect / 消息队列 — 单人项目过度工程。

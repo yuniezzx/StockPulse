@@ -60,7 +60,10 @@ pulse-core/pulse_core/
   evaluation/    策略校验
   weights/       权重建议
   outbox/        通知出箱
-  scheduler/     任务编排
+  scheduler/     任务编排（daemon + scheduler + worker + job_runs）
+                 daemon.py 是常驻进程入口
+                 cron.py 到点写 pending 行 / worker.py 轮询执行
+                 jobs/{domain}.py 是 handler 实现
 
 pulse-api/src/
   domains/{feature}/  routes.ts + service.ts + repository.ts + schemas.ts
@@ -99,9 +102,17 @@ pulse-web/src/
 - [ ] `pulse-web/src/pages/{feature}/{view}.tsx`
 
 ### 新通知
-- [ ] pulse-core 写 `notifications_outbox`（`scheduled_at` = 次日 07:00）
+- [ ] pulse-core 写 `notifications_outbox`（`scheduled_at` = 次日 07:00；运维告警立即 NOW()）
 - [ ] pulse-api `notifier/briefing.ts` 决定如何聚合
 - [ ] 通道实现在 `pulse-api/src/notifier/channels/`
+
+### 新定时任务
+- [ ] handler 实现：`pulse-core/pulse_core/scheduler/jobs/{domain}.py`
+- [ ] 签名 `async def {name}_handler(run: JobRun) -> JobResult`
+- [ ] handler 内部异常**向上抛**（worker 兜底为 failed）；可恢复的子任务失败用 `JobResult(status='partial', details={...})`
+- [ ] `daemon.py` 内 `register("{job_name}", {name}_handler)` 集中注册
+- [ ] `cron.py` 添加 `scheduler.add_job(...)` + `_fire_{name}()` 触发器
+- [ ] `job_name` 命名 = snake_case，对应明确的领域动作（如 `sync_stocks_cn` / `evening_ingestion`）
 
 ---
 
@@ -155,10 +166,13 @@ ingestion/sync_daily.py                          -- 应 daily_cn.py
 # DB migration
 pnpm db:migrate
 
-# 数据同步
+# 数据同步（手动跑一次，建议首次拉历史数据用）
 cd pulse-core
 uv run python -m pulse_core.ingestion.stocks_cn
 uv run python -m pulse_core.ingestion.daily_cn
+
+# 定时任务常驻进程（接管每日 18:00 / 18:30 自动同步）
+uv run python -m pulse_core.scheduler.daemon
 
 # 选股
 uv run python -m pulse_core.screener.runner --date 2026-05-21
