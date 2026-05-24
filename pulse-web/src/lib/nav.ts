@@ -9,6 +9,7 @@ import {
   Sliders,
   LineChart,
   Settings,
+  BookOpen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -32,4 +33,8 @@ export const mainNavItems: NavItem[] = [
 
 export const footerNavItems: NavItem[] = [
   { title: "设置", url: "/settings", icon: Settings },
+];
+
+export const topbarNavItems: NavItem[] = [
+  { title: "指标文档", url: "/indicator-doc", icon: BookOpen },
 ];

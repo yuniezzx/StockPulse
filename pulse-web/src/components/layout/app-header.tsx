@@ -1,12 +1,12 @@
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { mainNavItems, footerNavItems } from "@/lib/nav";
+import { mainNavItems, footerNavItems, topbarNavItems } from "@/lib/nav";
 
 function getPageTitle(pathname: string): string {
-  const all = [...mainNavItems, ...footerNavItems];
+  const all = [...mainNavItems, ...footerNavItems, ...topbarNavItems];
   const exact = all.find((i) => i.url === pathname);
   if (exact) return exact.title;
   const prefix = all.find((i) => i.url !== "/" && pathname.startsWith(i.url));
@@ -26,6 +26,22 @@ export function AppHeader() {
       <span className="text-sm font-medium">{title}</span>
 
       <div className="ml-auto flex items-center gap-2">
+        {topbarNavItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Button
+              key={item.url}
+              variant="ghost"
+              size="icon"
+              aria-label={item.title}
+              asChild
+            >
+              <Link to={item.url}>
+                <Icon />
+              </Link>
+            </Button>
+          );
+        })}
         <Button variant="ghost" size="icon" aria-label="切换主题">
           <Moon />
         </Button>

@@ -20,6 +20,13 @@ import RiskSignalsPage from "@/pages/risk-signals/index";
 import StrategiesPage from "@/pages/strategies/index";
 import EvaluationsPage from "@/pages/evaluations/index";
 import SettingsPage from "@/pages/settings/index";
+import IndicatorDocLayout from "@/pages/indicator-doc/_layout";
+import IndicatorDocPage from "@/pages/indicator-doc/index";
+import IndicatorToolsPage from "@/pages/indicator-doc/tools";
+import IndicatorTrendPage from "@/pages/indicator-doc/trend";
+import IndicatorMomentumPage from "@/pages/indicator-doc/momentum";
+import IndicatorVolumePage from "@/pages/indicator-doc/volume";
+import IndicatorMoneyflowPage from "@/pages/indicator-doc/moneyflow";
 import AppLayout from "@/components/layout/app-layout";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { GuestRoute } from "@/components/auth/guest-route";
@@ -49,6 +56,18 @@ export const router = createBrowserRouter([
           { path: "strategies", element: <StrategiesPage /> },
           { path: "evaluations", element: <EvaluationsPage /> },
           { path: "settings", element: <SettingsPage /> },
+          {
+            path: "indicator-doc",
+            element: <IndicatorDocLayout />,
+            children: [
+              { index: true, element: <IndicatorDocPage /> },
+              { path: "tools", element: <IndicatorToolsPage /> },
+              { path: "trend", element: <IndicatorTrendPage /> },
+              { path: "momentum", element: <IndicatorMomentumPage /> },
+              { path: "volume", element: <IndicatorVolumePage /> },
+              { path: "moneyflow", element: <IndicatorMoneyflowPage /> },
+            ],
+          },
         ],
       },
     ],
