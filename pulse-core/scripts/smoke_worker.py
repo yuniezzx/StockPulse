@@ -107,10 +107,7 @@ async def main() -> None:
     final4 = await fetch_by_id(id4)
     assert final4.status == STATUS_FAILED
     assert "unknown job" in (final4.error_message or "")
-    print(
-        f"  run_id={id4} status={final4.status} "
-        f"error_message={final4.error_message!r}"
-    )
+    print(f"  run_id={id4} status={final4.status} error_message={final4.error_message!r}")
 
     print(">>> case 5: no pending -> _run_once returns False")
     assert await _run_once(registry) is False

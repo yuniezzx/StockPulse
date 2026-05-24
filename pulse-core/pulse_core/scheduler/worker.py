@@ -97,8 +97,7 @@ async def _run_once(registry: Registry) -> bool:
 async def run_worker(stop_event: asyncio.Event, registry: Registry) -> None:
     """worker 主循环，直到 stop_event 被置位才退出。"""
     logger.info(
-        f"worker started (poll_interval={_POLL_INTERVAL_SECONDS}s, "
-        f"handlers={len(registry)})"
+        f"worker started (poll_interval={_POLL_INTERVAL_SECONDS}s, handlers={len(registry)})"
     )
     while not stop_event.is_set():
         try:
