@@ -1,16 +1,15 @@
+/**
+ * Indicator-doc navigation data — single source of truth for section slugs and indicator anchors.
+ * The anchor validation script (scripts/check-indicator-anchors.ts) verifies that every anchor
+ * listed here has a corresponding MDX file with a matching {#anchor} heading ID.
+ */
 export type DocNavItem = {
   anchor: string;
   title: string;
   hint?: string;
 };
 
-export type DocNavSection = {
-  slug: "tools" | "trend" | "momentum" | "volume" | "moneyflow";
-  title: string;
-  items: DocNavItem[];
-};
-
-export const indicatorDocNav: DocNavSection[] = [
+const indicatorDocNavData = [
   {
     slug: "tools",
     title: "工具 Tools",
@@ -55,4 +54,22 @@ export const indicatorDocNav: DocNavSection[] = [
       { anchor: "retail-net", title: "散户净额" },
     ],
   },
-];
+] as const;
+
+export type DocNavAnchor = (typeof indicatorDocNavData)[number]["items"][number]["anchor"];
+
+export type DocNavSection = {
+  slug: (typeof indicatorDocNavData)[number]["slug"];
+  title: string;
+  items: readonly DocNavItem[];
+};
+
+export const indicatorDocNav = indicatorDocNavData satisfies readonly DocNavSection[];
+
+export function getSectionBySlug(slug: DocNavSection["slug"]): DocNavSection | undefined {
+  return indicatorDocNav.find((s) => s.slug === slug) as DocNavSection | undefined;
+}
+
+export function getAllAnchors(): DocNavAnchor[] {
+  return indicatorDocNav.flatMap((s) => s.items.map((i) => i.anchor)) as DocNavAnchor[];
+}
