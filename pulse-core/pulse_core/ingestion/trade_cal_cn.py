@@ -1,13 +1,15 @@
 """Ingest A-share trading calendar from Tushare into trade_cal_cn table.
 
-默认范围：HISTORY_START_DATE → 当年 12-31（覆盖全部历史 + 本年度）
+默认范围（增量）：DB 中最大 cal_date 的次日 → 当年 12-31
+首次同步（表为空）：HISTORY_START_DATE → 当年 12-31
+若 DB 已覆盖到当年年底，则跳过本次同步。
 支持 CLI 参数：--start / --end / --dry-run（--stocks / --limit 对日历无意义，会被忽略）
 
 用法:
-    # 全量（默认）
+    # 增量（默认，自动检查 DB 最新日期）
     uv run python -m pulse_core.ingestion.trade_cal_cn
 
-    # 限定范围
+    # 限定范围（强制覆盖）
     uv run python -m pulse_core.ingestion.trade_cal_cn --start 20260101 --end 20261231
 
     # 只拉取不写库
@@ -15,7 +17,7 @@
 """
 
 import asyncio
-from datetime import date
+from datetime import date, timedelta
 
 import pandas as pd
 from loguru import logger
@@ -63,16 +65,26 @@ def _df_to_rows(df: pd.DataFrame) -> list[tuple]:
 
 
 async def sync_trade_cal_cn(args: IngestionArgs) -> int:
-    """Sync trade calendar for both SSE and SZSE.
-
-    Returns total rows upserted (0 if dry-run).
-    """
-    start = args.start or HISTORY_START_DATE
     end = args.end or date(date.today().year, 12, 31)
+
+    if args.start:
+        start = args.start
+    else:
+        async with acquire() as conn:
+            last = await conn.fetchval("SELECT MAX(cal_date) FROM trade_cal_cn")
+        if last is None:
+            start = HISTORY_START_DATE
+            logger.info("trade_cal_cn is empty; full sync from {}", start)
+        elif last >= end:
+            logger.info("trade_cal_cn already up to date (last={}, end={}); skipping", last, end)
+            return 0
+        else:
+            start = last + timedelta(days=1)
+            logger.info("trade_cal_cn incremental sync from {} (last={})", start, last)
+
     start_str = start.strftime("%Y%m%d")
     end_str = end.strftime("%Y%m%d")
-
-    logger.info(f"trade_cal_cn sync range: {start_str} -> {end_str} (dry_run={args.dry_run})")
+    logger.info("trade_cal_cn sync range: {} -> {} (dry_run={})", start_str, end_str, args.dry_run)
 
     total = 0
     for exchange in _EXCHANGES:
