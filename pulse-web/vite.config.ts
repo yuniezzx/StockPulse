@@ -5,7 +5,6 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import remarkMath from "remark-math";
 import rehypeSlug from "rehype-slug";
-import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypePrettyCode from "rehype-pretty-code";
 import rehypeKatex from "rehype-katex";
 import { createHighlighter } from "shiki";
@@ -22,7 +21,7 @@ export default defineConfig({
       remarkPlugins: [remarkMath],
       rehypePlugins: [
         rehypeSlug,
-        [rehypeAutolinkHeadings, { behavior: "wrap" }],
+
         [
           rehypePrettyCode,
           {

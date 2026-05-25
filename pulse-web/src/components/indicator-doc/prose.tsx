@@ -28,7 +28,18 @@ export const mdxComponents = {
     if (props["data-language"]) return <code {...props}>{children}</code>;
     return <code className="font-mono text-[0.875em] px-1.5 py-0.5 rounded bg-muted text-foreground" {...props}>{children}</code>;
   },
-  pre: (props: PreProps) => <pre className="my-6 overflow-x-auto rounded-md border py-4 px-0 text-[13px] leading-6 font-mono" {...props} />,
+  pre: ({ "data-language": dataLanguage, ...props }: PreProps & { "data-language"?: string }) => {
+    if (dataLanguage) {
+      return <pre className="overflow-x-auto py-4 px-4 text-[13px] leading-6 font-mono" data-language={dataLanguage} {...props} />;
+    }
+    return <pre className="my-6 overflow-x-auto rounded-md border py-4 px-4 text-[13px] leading-6 font-mono" {...props} />;
+  },
+  figure: (props: HTMLAttributes<HTMLElement>) => {
+    if ("data-rehype-pretty-code-figure" in props) {
+      return <figure className="my-6 overflow-hidden rounded-md border text-[13px]" {...props} />;
+    }
+    return <figure {...props} />;
+  },
   table: (props: TableProps) => <table className="my-6 w-full text-[14px] border-collapse" {...props} />,
   th: (props: ThProps) => <th className="border-b border-border px-3 py-2 text-left font-medium" {...props} />,
   td: (props: TdProps) => <td className="border-b border-border/60 px-3 py-2 align-top" {...props} />,

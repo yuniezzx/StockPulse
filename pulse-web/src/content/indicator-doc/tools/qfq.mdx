@@ -1,14 +1,20 @@
-<h2 id="qfq">前复权 (qfq)</h2>
+## 前复权 (qfq)
 
 前复权（qfq）将历史价格按最新除权除息口径回溯调整，使得不同时间点的价格在同一坐标系下可比。所有数值型指标（MA / MACD / RSI 等）均基于 qfq 口径计算。
 
 ### 公式
 
-```text
-ratio       = adj_factor / latest_adj_factor    ∈ (0, 1]
-{open,high,low,close}_qfq = price * ratio
-vol_qfq     = vol / ratio                       (量价反向)
-```
+$$
+\text{ratio} = \frac{\text{adj\_factor}}{\text{latest\_adj\_factor}} \in (0,\ 1]
+$$
+
+$$
+\{open,\ high,\ low,\ close\}_{qfq} = price \times ratio
+$$
+
+$$
+vol_{qfq} = \frac{vol}{ratio} \quad (\text{量价反向})
+$$
 
 ### 函数签名
 
