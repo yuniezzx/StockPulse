@@ -7,7 +7,7 @@ export function DocNav() {
 
   return (
     <nav
-      className="bg-background w-60 shrink-0 overflow-y-auto border-r py-6"
+      className="bg-background w-60 shrink-0 sticky top-14 max-h-[calc(100vh-3.5rem)] overflow-y-auto self-start border-r py-6"
       data-doc-nav
     >
       {indicatorDocNav.map((section) => {

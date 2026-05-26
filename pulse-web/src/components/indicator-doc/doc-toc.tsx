@@ -50,7 +50,7 @@ export function DocToc({ containerSelector = "[data-doc-content]" }: { container
 
   return (
     <aside
-      className="hidden xl:block w-56 shrink-0 sticky top-0 self-start h-screen overflow-y-auto py-12 pr-6"
+      className="hidden xl:block w-56 shrink-0 sticky top-14 max-h-[calc(100vh-3.5rem)] overflow-y-auto self-start py-12 pr-6"
       data-toc
     >
       <div className="mb-3 pl-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
