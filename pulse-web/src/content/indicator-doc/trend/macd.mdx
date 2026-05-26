@@ -1,3 +1,72 @@
-<h2 id="macd">MACD</h2>
+## MACD
 
-待补充：公式 / 边界 / 示例。
+MACD（Moving Average Convergence Divergence），基于 EMA12 与 EMA26 的差值衍生，用于判断趋势方向与动量强弱。
+
+### 公式
+
+$$
+\text{DIF} = \text{EMA12} - \text{EMA26}
+$$
+
+$$
+\text{DEA} = \text{EMA}(\text{DIF},\ 9)
+$$
+
+$$
+\text{HIST} = (\text{DIF} - \text{DEA}) \times 2 \quad \text{（A 股惯例）}
+$$
+
+### 例子
+
+| 日期 | EMA12 | EMA26 | DIF | DEA | HIST |
+|------|-------|-------|-----|-----|------|
+| 第 1 天 | 10.15 | 10.08 | 0.07 | 0.07 | 0.00 |
+| 第 2 天 | 10.30 | 10.18 | 0.12 | 0.08 | 0.08 |
+| 第 3 天 | 10.20 | 10.22 | -0.02 | 0.06 | -0.16 |
+
+- HIST > 0：DIF 在 DEA 上方，多头动量
+- HIST < 0：DIF 在 DEA 下方，空头动量
+
+### 函数签名
+
+```python
+compute_macd(df: pd.DataFrame) -> pd.DataFrame
+```
+
+位于 `pulse_core/indicators/trend.py`。需先调用 `compute_ema` 确保 df 含 ema12 / ema26 列。
+
+### 参数说明
+
+- df — 含 ts_code / trade_date / ema12 / ema26，已按 ts_code + trade_date 排序
+
+### 输出列
+
+新增 4 列：
+
+| 字段 | 含义 |
+|------|------|
+| `dif` | EMA12 - EMA26，快慢线差值 |
+| `dea` | DIF 的 9 日 EMA，信号线 |
+| `hist` | (DIF - DEA) × 2，柱状图（A 股惯例） |
+| `is_macd_golden_cross` | 金叉标记，见下节 |
+
+### 金叉 (is_macd_golden_cross)
+
+DIF 从下往上穿过 DEA，视为买入信号。
+
+#### 公式
+
+$$
+\text{is\_macd\_golden\_cross} = \text{prev\_dif} \leq \text{prev\_dea} \;\land\; \text{dif} > \text{dea}
+$$
+
+#### 边界说明
+
+- 第一天无前一日数据，结果为 null
+- dif / dea 任一为 null 时，结果为 null
+
+### 注意事项
+
+- 依赖 EMA：需先调用 compute_ema，再调用 compute_macd
+- 从第一天起 dif / dea / hist 即有值，不存在 null 窗口期
+- 多股隔离：按 ts_code 分组计算，不同股票之间互不污染
