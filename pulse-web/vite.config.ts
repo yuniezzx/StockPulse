@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import remarkMath from "remark-math";
+import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import rehypePrettyCode from "rehype-pretty-code";
 import rehypeKatex from "rehype-katex";
@@ -18,7 +19,7 @@ export default defineConfig({
   plugins: [
     mdx({
       jsxImportSource: "react",
-      remarkPlugins: [remarkMath],
+      remarkPlugins: [remarkMath, remarkGfm],
       rehypePlugins: [
         rehypeSlug,
 
