@@ -1,0 +1,43 @@
+"""基于 close_qfq 计算动量类指标。
+
+- RSI：基于 Wilder 平滑，周期沿用同花顺/东方财富 A 股惯例（6/12/24），不足窗口期严格为 NULL
+
+调用方需先完成前复权转换并提供 `close_qfq` 列。
+"""
+
+from __future__ import annotations
+
+import pandas as pd
+
+
+def compute_rsi(df: pd.DataFrame) -> pd.DataFrame:
+    """计算 RSI6/RSI12/RSI24 及多头排列标记"""
+    result = df.copy()
+    result["_row_order"] = range(len(result))
+    result = result.sort_values(["ts_code", "trade_date", "_row_order"]).reset_index(drop=True)
+
+    for window in (6, 12, 24):
+        result[f"rsi{window}"] = (
+            result.groupby("ts_code", sort=False)["close_qfq"]
+            .transform(lambda s, w=window: _rsi(s, w))
+        )
+
+    bull = (
+        result[["rsi6", "rsi12", "rsi24"]].notna().all(axis=1)
+        & (result["rsi6"] > result["rsi12"])
+        & (result["rsi12"] > result["rsi24"])
+    )
+    result["is_rsi_bull_arrangement"] = bull.astype("boolean")
+    result.loc[~result[["rsi6", "rsi12", "rsi24"]].notna().all(axis=1), "is_rsi_bull_arrangement"] = pd.NA
+
+    result = result.sort_values("_row_order").drop(columns=["_row_order"]).reset_index(drop=True)
+    return result
+
+
+def _rsi(s, window):
+    delta = s.diff()
+    gain = delta.clip(lower=0)
+    loss = (-delta).clip(lower=0)
+    avg_gain = gain.ewm(alpha=1 / window, adjust=False, min_periods=window).mean()
+    avg_loss = loss.ewm(alpha=1 / window, adjust=False, min_periods=window).mean()
+    return 100 * avg_gain / (avg_gain + avg_loss)
