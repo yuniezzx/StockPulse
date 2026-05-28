@@ -32,6 +32,7 @@ const indicatorDocNavData = [
     title: "动量 Momentum",
     items: [
       { anchor: "rsi", title: "RSI", hint: "RSI6/12/24" },
+      { anchor: "atr", title: "ATR 真实波幅", hint: "ATR14" },
       { anchor: "pct-chg", title: "N 日涨跌幅", hint: "5d/20d" },
       { anchor: "is-limit-up", title: "涨停 / 跌停" },
       { anchor: "is-new-high-60d", title: "60 日新高/新低" },

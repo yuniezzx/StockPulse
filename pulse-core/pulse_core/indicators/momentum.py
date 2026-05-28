@@ -1,8 +1,9 @@
-"""基于 close_qfq 计算动量类指标。
+"""基于 qfq 价格计算动量类指标。
 
 - RSI：基于 Wilder 平滑，周期沿用同花顺/东方财富 A 股惯例（6/12/24），不足窗口期严格为 NULL
+- ATR：True Range 的 Wilder 平滑（基于 qfq high/low/close），周期 14
 
-调用方需先完成前复权转换并提供 `close_qfq` 列。
+调用方需先完成前复权转换并提供 `close_qfq` / `high_qfq` / `low_qfq` 列。
 """
 
 from __future__ import annotations
@@ -41,3 +42,24 @@ def _rsi(s, window):
     avg_gain = gain.ewm(alpha=1 / window, adjust=False, min_periods=window).mean()
     avg_loss = loss.ewm(alpha=1 / window, adjust=False, min_periods=window).mean()
     return 100 * avg_gain / (avg_gain + avg_loss)
+
+
+def compute_atr(df: pd.DataFrame) -> pd.DataFrame:
+    """计算 ATR14"""
+    result = df.copy()
+    result["_row_order"] = range(len(result))
+    result = result.sort_values(["ts_code", "trade_date", "_row_order"]).reset_index(drop=True)
+
+    prev_close = result.groupby("ts_code", sort=False)["close_qfq"].shift(1)
+    tr1 = result["high_qfq"] - result["low_qfq"]
+    tr2 = (result["high_qfq"] - prev_close).abs()
+    tr3 = (result["low_qfq"] - prev_close).abs()
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    tr.loc[prev_close.isna()] = pd.NA
+
+    result["atr14"] = tr.groupby(result["ts_code"], sort=False).transform(
+        lambda s: s.ewm(alpha=1 / 14, adjust=False, min_periods=14).mean()
+    )
+
+    result = result.sort_values("_row_order").drop(columns=["_row_order"]).reset_index(drop=True)
+    return result

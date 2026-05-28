@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from pulse_core.indicators.momentum import compute_rsi
+from pulse_core.indicators.momentum import compute_atr, compute_rsi
 
 
 def _make_close() -> pd.DataFrame:
@@ -88,4 +88,79 @@ def test_does_not_mutate_input():
     df = _make_close()
     before = df.copy()
     compute_rsi(df)
+    pd.testing.assert_frame_equal(df, before)
+
+
+def _make_ohlc() -> pd.DataFrame:
+    """辅助：生成带 high_qfq / low_qfq / close_qfq 的 DataFrame。"""
+    dates = pd.bdate_range("2024-01-02", periods=30)
+    close = np.arange(1, 31, dtype=float)
+    return pd.DataFrame(
+        {
+            "ts_code": "000001.SZ",
+            "trade_date": dates,
+            "high_qfq": close + 0.5,
+            "low_qfq": close - 0.5,
+            "close_qfq": close,
+        }
+    )
+
+
+def test_atr14_first_14_rows_null():
+    result = compute_atr(_make_ohlc())
+    assert result["atr14"].iloc[:14].isna().all()
+
+
+def test_atr14_row14_has_value():
+    result = compute_atr(_make_ohlc())
+    assert not pd.isna(result["atr14"].iloc[14])
+    assert result["atr14"].iloc[14] > 0
+
+
+def test_atr14_constant_range_equals_range():
+    dates = pd.bdate_range("2024-01-02", periods=30)
+    df = pd.DataFrame(
+        {
+            "ts_code": "000001.SZ",
+            "trade_date": dates,
+            "high_qfq": 10.5,
+            "low_qfq": 9.5,
+            "close_qfq": 10.0,
+        }
+    )
+    result = compute_atr(df)
+    assert np.isclose(result["atr14"].iloc[20], 1.0)
+
+
+def test_atr_multi_stock_no_cross_contamination():
+    dates = pd.bdate_range("2024-01-02", periods=30)
+    stock_a = pd.DataFrame(
+        {
+            "ts_code": "000001.SZ",
+            "trade_date": dates,
+            "high_qfq": 10.5,
+            "low_qfq": 9.5,
+            "close_qfq": 10.0,
+        }
+    )
+    stock_b = pd.DataFrame(
+        {
+            "ts_code": "000002.SZ",
+            "trade_date": dates,
+            "high_qfq": 21.0,
+            "low_qfq": 19.0,
+            "close_qfq": 20.0,
+        }
+    )
+    result = compute_atr(pd.concat([stock_a, stock_b], ignore_index=True))
+    sub_a = result[result["ts_code"] == "000001.SZ"].reset_index(drop=True)
+    sub_b = result[result["ts_code"] == "000002.SZ"].reset_index(drop=True)
+    assert np.isclose(sub_a["atr14"].iloc[20], 1.0)
+    assert np.isclose(sub_b["atr14"].iloc[20], 2.0)
+
+
+def test_atr_does_not_mutate_input():
+    df = _make_ohlc()
+    before = df.copy()
+    compute_atr(df)
     pd.testing.assert_frame_equal(df, before)
