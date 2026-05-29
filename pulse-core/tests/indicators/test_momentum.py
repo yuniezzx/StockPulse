@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from pulse_core.indicators.momentum import compute_atr, compute_rsi
+from pulse_core.indicators.momentum import compute_atr, compute_pct_chg, compute_rsi
 
 
 def _make_close() -> pd.DataFrame:
@@ -163,4 +163,62 @@ def test_atr_does_not_mutate_input():
     df = _make_ohlc()
     before = df.copy()
     compute_atr(df)
+    pd.testing.assert_frame_equal(df, before)
+
+
+def test_pct_chg_5d_first_5_rows_null():
+    result = compute_pct_chg(_make_close())
+    assert result["pct_chg_5d"].iloc[:5].isna().all()
+
+
+def test_pct_chg_20d_first_20_rows_null():
+    result = compute_pct_chg(_make_close())
+    assert result["pct_chg_20d"].iloc[:20].isna().all()
+
+
+def test_pct_chg_5d_correct_value():
+    result = compute_pct_chg(_make_close())
+    assert np.isclose(result["pct_chg_5d"].iloc[5], 5.0)
+
+
+def test_pct_chg_negative():
+    dates = pd.bdate_range("2024-01-02", periods=30)
+    df = pd.DataFrame(
+        {
+            "ts_code": "000001.SZ",
+            "trade_date": dates,
+            "close_qfq": np.arange(30, 0, -1, dtype=float),
+        }
+    )
+    result = compute_pct_chg(df)
+    assert np.isclose(result["pct_chg_5d"].iloc[5], 25 / 30 - 1)
+
+
+def test_pct_chg_multi_stock_no_cross_contamination():
+    dates = pd.bdate_range("2024-01-02", periods=30)
+    stock_a = pd.DataFrame(
+        {
+            "ts_code": "000001.SZ",
+            "trade_date": dates,
+            "close_qfq": np.arange(1, 31, dtype=float),
+        }
+    )
+    stock_b = pd.DataFrame(
+        {
+            "ts_code": "000002.SZ",
+            "trade_date": dates,
+            "close_qfq": np.arange(101, 131, dtype=float),
+        }
+    )
+    result = compute_pct_chg(pd.concat([stock_a, stock_b], ignore_index=True))
+    sub_a = result[result["ts_code"] == "000001.SZ"].reset_index(drop=True)
+    sub_b = result[result["ts_code"] == "000002.SZ"].reset_index(drop=True)
+    assert np.isclose(sub_a["pct_chg_5d"].iloc[5], 5.0)
+    assert np.isclose(sub_b["pct_chg_5d"].iloc[5], 106 / 101 - 1)
+
+
+def test_pct_chg_does_not_mutate_input():
+    df = _make_close()
+    before = df.copy()
+    compute_pct_chg(df)
     pd.testing.assert_frame_equal(df, before)
