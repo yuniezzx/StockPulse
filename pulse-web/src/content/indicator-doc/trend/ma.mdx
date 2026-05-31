@@ -1,0 +1,67 @@
+## MA 均线
+
+移动平均线（Moving Average），对过去 N 日的前复权收盘价取算术平均，平滑价格波动、反映趋势方向。
+
+### 公式
+
+$$
+\text{MA}(N) = \frac{1}{N} \sum_{i=0}^{N-1} \text{close\_qfq}_{t-i}
+$$
+
+### 例子
+
+以 MA5 为例，某股前 5 日 close_qfq 为 10, 11, 12, 13, 14：
+
+| 日期 | close_qfq | ma5 |
+|------|-----------|-----|
+| 第 1 天 | 10 | null |
+| 第 2 天 | 11 | null |
+| 第 3 天 | 12 | null |
+| 第 4 天 | 13 | null |
+| 第 5 天 | 14 | (10+11+12+13+14) / 5 = **12.0** |
+| 第 6 天 | 15 | (11+12+13+14+15) / 5 = **13.0** |
+
+### 函数签名
+
+```python
+compute_ma(df: pd.DataFrame) -> pd.DataFrame
+```
+
+位于 `pulse_core/indicators/trend.py`。
+
+### 参数说明
+
+- df — 含 ts_code / trade_date / close_qfq，已按 ts_code + trade_date 排序
+
+### 输出列
+
+新增 5 列：
+
+| 字段 | 窗口 | 含义 |
+|------|------|------|
+| `ma5` | 5 日 | 短期趋势 |
+| `ma10` | 10 日 | 短中期趋势 |
+| `ma20` | 20 日 | 中期趋势（月线） |
+| `ma60` | 60 日 | 中长期趋势（季线） |
+| `is_ma_bull_arrangement` | — | `ma5 > ma10 > ma20 > ma60`，任一为 null 时结果为 null |
+
+### 多头排列 (is_ma_bull_arrangement)
+
+MA 的派生字段，判断当日均线是否呈多头排列状态。
+
+#### 公式
+
+$$
+\text{is\_ma\_bull\_arrangement} = ma5 > ma10 > ma20 > ma60
+$$
+
+#### 边界说明
+
+- ma5 / ma10 / ma20 / ma60 任一为 null 时，结果为 null（无法判定）
+- 全部有值时，结果为 true 或 false
+
+### 注意事项
+
+- 窗口不足：历史数据不足 N 日时该字段为 null（min_periods=N 强制，不做部分填充）
+- 多股隔离：按 ts_code 分组计算，不同股票之间互不污染
+- 依赖前复权：所有 MA 均基于 close_qfq，需先调用 apply_qfq

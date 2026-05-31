@@ -1,0 +1,56 @@
+## 前复权 (qfq)
+
+前复权（qfq）将历史价格按最新除权除息口径回溯调整，使得不同时间点的价格在同一坐标系下可比。所有数值型指标（MA / MACD / RSI 等）均基于 qfq 口径计算。
+
+### 公式
+
+$$
+\text{ratio} = \frac{\text{adj\_factor}}{\text{latest\_adj\_factor}} \in (0,\ 1]
+$$
+
+$$
+\{open,\ high,\ low,\ close\}_{qfq} = price \times ratio
+$$
+
+$$
+vol_{qfq} = \frac{vol}{ratio} \quad (\text{量价反向})
+$$
+
+### 例子
+
+某股发生 10 送 10（股本翻倍），除权后 adj_factor 从 1.0 变为 2.0，latest_adj_factor = 2.0：
+
+| 日期 | close（原始） | adj_factor | ratio | close_qfq |
+|------|--------------|------------|-------|-----------|
+| 除权前 | 20.00 | 1.0 | 1.0 / 2.0 = 0.5 | 10.00 |
+| 除权后 | 10.00 | 2.0 | 2.0 / 2.0 = 1.0 | 10.00 |
+
+除权前后 close_qfq 连续，价格图不会出现跳空缺口。
+
+### 函数签名
+
+```python
+apply_qfq(
+    daily_df: pd.DataFrame,
+    adj_df: pd.DataFrame,
+    latest_adj: dict[str, float] | None = None,
+) -> pd.DataFrame
+```
+
+位于 `pulse_core/indicators/adjust.py`。
+
+### 参数说明
+
+- daily_df — 含 ts_code / trade_date / open / high / low / close / vol
+- adj_df — 含 ts_code / trade_date / adj_factor
+- latest_adj（可选） — \{ts_code: 最新 adj_factor\}。生产环境由 T10 从 DB 查 SELECT DISTINCT ON (ts_code) 传入；不传则 fallback 到 adj_df 内最后一行（要求 adj_df 必须是全历史）。
+
+### 输出列
+
+在原始 7 列基础上新增 5 列：open_qfq / high_qfq / low_qfq / close_qfq / vol_qfq。原始列保留，便于涨跌停判定等需要原始价的场景。
+
+### 注意事项
+
+- qfq 漂移：每次新除权事件触发后，历史所有价格按新基准重算，与 Tushare pro_bar(adj='qfq') 行为一致。策略的布尔判定（金叉/新高等）不受漂移影响。
+- 全量重算：indicators 走 mode="full_rebuild"，每晚 ingestion 后整批刷新 4 张指标表。
+- 涨跌停判定例外：is_limit_up / is_limit_down 使用原始 close 比对 stk_limit_cn，不走 qfq。

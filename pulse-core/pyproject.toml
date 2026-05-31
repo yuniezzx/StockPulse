@@ -1,0 +1,51 @@
+[project]
+name = "pulse-core"
+version = "0.1.0"
+description = "StockPulse compute engine: data ingestion, indicators, screening, risk, evaluation, weights."
+requires-python = ">=3.12"
+dependencies = [
+    "apscheduler>=3.10,<4.0",
+    "pydantic-settings>=2.6.0",
+    "loguru>=0.7.2",
+    "asyncpg>=0.30.0",
+    "tushare>=1.4.0,<2.0.0",
+    "tenacity>=9.0.0",
+    "pandas>=2.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.0",
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+]
+
+[tool.uv]
+# pulse-core is an application, not a publishable library.
+# uv won't invoke the build backend; pulse_core/ is importable via cwd on sys.path.
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["."]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.ruff.lint]
+# E/F/I = baseline (pycodestyle errors, pyflakes, isort)
+# W     = whitespace warnings
+# UP    = pyupgrade (modern Python 3.12 syntax)
+# B     = flake8-bugbear (common bug patterns)
+# NOTE: 'N' (pep8-naming) is intentionally excluded — it conflicts with our
+#       naming convention (e.g. MACDStrategy keeps acronyms uppercase).
+select = ["E", "F", "I", "W", "UP", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pulse_core"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+testpaths = ["tests"]
