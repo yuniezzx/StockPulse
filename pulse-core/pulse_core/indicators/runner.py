@@ -208,7 +208,10 @@ async def _load_source_data(
         "mf": await conn.fetch(_SOURCE_MONEYFLOW_SQL, window_start, end),
         "limits": await conn.fetch(_SOURCE_LIMIT_SQL, window_start, end),
     }
-    return {name: pd.DataFrame.from_records(records) for name, records in rows.items()}
+    return {
+        name: pd.DataFrame.from_records([dict(r) for r in records])
+        for name, records in rows.items()
+    }
 
 
 def _compute_all_indicators(

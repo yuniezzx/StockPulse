@@ -430,11 +430,10 @@ APScheduler 不直接调用 handler，而是写一行 `job_runs` `status='pendin
 |---|---|---|
 | `sync_trade_cal_cn` | 18:00 daily | 同步交易日历（为次日盘前准备） |
 | `sync_stocks_cn` | 18:02 daily | 同步股票列表（新股 / 退市，错开 2 分钟避免与 sync_trade_cal_cn 同秒入队） |
-| `evening_ingestion` | 18:30 daily | 拉日线 / 复权 / 涨跌停 / 估值 / 资金流（5 子任务串行，支持 partial） |
+| `evening_ingestion` | 18:30 daily | 拉日线 / 复权 / 涨跌停 / 估值 / 资金流 + 计算 4 张派生指标表（6 子任务串行，支持 partial） |
 
 **待办（TODO）**：
 
-- `indicators/runner.py` 已经实现但**还未接入 scheduler**。计划新增 `evening_indicators` job（依赖 `evening_ingestion` 成功），在 19:00 daily 触发，调用 `indicators/runner.py` 写入 4 张 `daily_{domain}_indicators_cn` 表。
 - `screener_runner`、`risk_scan`、`morning_briefing` 等领域 job 待 screener / risk / outbox 模块落地后再加。
 
 **代价与取舍**：APScheduler 为进程内调度，进程挂掉不会像 OS cron 那样由系统自动续跑。单人项目场景下可接受——进程挂了早报收不到立刻可知。pulse-api 一侧的 07:00 早报发送仍走 Fastify 进程内 cron（fastify-cron），不变。

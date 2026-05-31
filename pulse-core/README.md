@@ -102,4 +102,4 @@ pulse_core/
   |---|---|---|
   | `sync_trade_cal_cn` | 18:00 | 同步交易日历 |
   | `sync_stocks_cn` | 18:02 | 同步 A 股列表（错开 2 分钟避 ORDER BY 平局） |
-  | `evening_ingestion` | 18:30 | 日线/复权/涨跌停/估值/资金流 5 子任务串行 |
+  | `evening_ingestion` | 18:30 | 日线/复权/涨跌停/估值/资金流 + 4 张派生指标表（6 子任务串行） |
