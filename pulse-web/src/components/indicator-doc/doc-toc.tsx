@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 type TocEntry = {
@@ -10,6 +11,7 @@ export function DocToc({ containerSelector = "[data-doc-content]" }: { container
   const [entries, setEntries] = useState<TocEntry[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const { pathname } = useLocation();
 
   // Scan h2[id] elements from the content container
   useEffect(() => {
@@ -44,7 +46,7 @@ export function DocToc({ containerSelector = "[data-doc-content]" }: { container
     headings.forEach((h) => observerRef.current?.observe(h));
 
     return () => observerRef.current?.disconnect();
-  }, [containerSelector]);
+  }, [containerSelector, pathname]);
 
   if (entries.length === 0) return null;
 

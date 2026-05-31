@@ -5,7 +5,7 @@
 -- 字段说明:
 --   ts_code:                  Tushare 股票代码
 --   trade_date:               交易日期
---   vol_ma5/vol_ma10:         成交量移动平均（基于 vol_qfq），单位=股
+--   vol_ma5/vol_ma10:         成交量移动平均（基于 daily_cn.vol），单位=股
 --   vol_ratio_5:              量比 = vol_qfq / vol_ma5，单位=无
 --   turnover_rate_ma5:        换手率 5 日均值（基于 daily_basic_cn.turnover_rate），单位=%（3.5 表示 3.5%）
 --   turnover_rate_ratio_5:    换手放大倍数 = 当日 turnover_rate / turnover_rate_ma5，单位=无
