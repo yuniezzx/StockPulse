@@ -53,7 +53,7 @@ pulse-web/    TypeScript · pnpm · 前端展示（零业务计算）
 pulse-core/pulse_core/
   lib/           共享：db / config / logger / time / tushare_client
   ingestion/     数据同步（一表一文件，文件名 = 表名）
-  indicators/    指标 + 形态
+  indicators/    指标 + 形态（按 domain 切分：trend/momentum/volume/moneyflow + runner.py）
   screener/      选股（filters/ strategies/ tracks/ runner.py）
   tracking/      虚拟仓自动追踪
   risk/          风控（卖出信号）
@@ -87,6 +87,15 @@ pulse-web/src/
 - [ ] `db/migrations/0NN_create_xxx.sql`（表头注释：用途 + 主键 + 单位）
 - [ ] `pulse-core/pulse_core/ingestion/xxx.py`（**同名**）
 - [ ] `pulse-core/sql/verify_xxx.sql`
+
+### 新指标
+- [ ] `pulse-core/pulse_core/indicators/{domain}.py` 实现 `compute_{indicator}(df)`（domain ∈ trend / momentum / volume / moneyflow）
+- [ ] `pulse-core/tests/indicators/test_{domain}.py` 增加用例
+- [ ] `db/migrations/0NN_create_daily_{domain}_indicators_cn.sql`（首次创建该 domain 表时；后续新增列改 alter）
+- [ ] `pulse-core/pulse_core/indicators/runner.py` 注册 `compute_*` 写入对应 `daily_{domain}_indicators_cn`
+- [ ] `pulse-web/src/content/indicator-doc/{domain}/{anchor}.mdx` 按 7 节结构写文档（详见 naming-conventions §四点八）
+- [ ] `pulse-web/src/lib/indicator-doc-nav.ts` 注册新 `anchor`，与 mdx 文件名一致
+- [ ] `pnpm check:anchors` / `pnpm typecheck` 通过
 
 ### 新选股策略
 - [ ] `pulse-core/pulse_core/screener/strategies/{key}.py`

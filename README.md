@@ -3,7 +3,7 @@
 > A 股短中线**个人**选股决策系统。
 > 每天傍晚同步数据 → 多策略漏斗选股 → 早晨推送早报 → 追踪持仓 → 校验策略 → 调整权重。
 >
-> **目标：分析、选股、买卖、追踪、校验、调权。不是回测。**
+> **目标：分析、选股、买卖、追踪、校验、调权。轻量回测。**
 
 ---
 
@@ -54,8 +54,7 @@ pulse-web/    TypeScript · pnpm · 前端展示
 ## 快速跑起来
 
 > **当前状态**：项目正在重构（分支 `refactor/v2-rebuild`）。
-> `pulse-core` 数据同步 + scheduler/worker 已落地（migration 001-010）；`pulse-web` + `pulse-api` 骨架已建立。
-> 老代码在 [`bak/`](bak/) 下保留。
+> `pulse-core` 数据同步 + scheduler/worker + 指标计算 已落地（migration 001-013）；`pulse-web` + `pulse-api` 骨架已建立。
 
 ### 环境要求
 

@@ -91,6 +91,7 @@
 - **screener 策略文件名 = 策略 key**：`screener/strategies/breakout.py` ↔ `name = "breakout"`
 - **screener 过滤器文件名 = 过滤器 key**：`screener/filters/liquidity.py` ↔ `name = "liquidity"`
 - **screener 赛道配置**：`screener/tracks/{track}.yaml`（短打/波段/中线声明式组合 filters + strategies）
+- **indicators 按领域切分**：`indicators/{domain}.py`，domain ∈ `trend` / `momentum` / `volume` / `moneyflow`；函数命名 `compute_{indicator}(df)`，多指标可同域并存（如 `compute_ma` / `compute_ema` / `compute_macd` 都在 `trend.py`）；`indicators/runner.py` 串联所有 `compute_*` 写入对应 `daily_{domain}_indicators_cn` 表
 - 测试文件：`tests/test_{被测模块}.py`
 - 私有脚本入口：`_main()` + `if __name__ == "__main__"`
 
@@ -138,10 +139,22 @@
 - 前复权列：`{原列名}_qfq`，例：`close_qfq` / `high_qfq` / `low_qfq`
 - 后复权列（如需）：`{原列名}_hfq`
 - 指标列：小写简称
-  - 均线：`ma5` / `ma10` / `ma20` / `ma60`（**指标名 + 周期数字直接拼接**，不要 `ma_20`）
-  - MACD：`dif` / `dea` / `hist`
-  - 其他：`rsi6` / `rsi12` / `rsi24` / `atr14`
-  - 量能：`vol_ma5` / `vol_ratio_5`
+  - 均线（trend）：`ma5` / `ma10` / `ma20` / `ma60`（**指标名 + 周期数字直接拼接**，不要 `ma_20`）
+  - 指数均线（trend）：`ema12` / `ema26`
+  - MACD（trend）：`dif` / `dea` / `hist`
+  - RSI（momentum）：`rsi6` / `rsi12` / `rsi24`
+  - ATR（momentum）：`atr14`
+  - 累计涨跌幅（momentum）：`pct_chg_5d` / `pct_chg_20d`
+  - K 线形态（momentum）：`gap_pct` / `body_pct`（小数，0.05 = 5%）
+  - 量能（volume）：`vol_ma5` / `vol_ma10` / `vol_ratio_5`
+  - 换手（volume）：`turnover_rate_ma5` / `turnover_rate_ratio_5`
+  - 估值分位（volume）：`pe_ttm_pct_60` / `pb_pct_60`
+  - 主力资金（moneyflow）：`main_net_amount` / `main_net_ratio` / `main_net_amount_ma5`
+  - 散户资金（moneyflow）：`retail_net_amount`
+- 布尔派生列：`is_xxx` 前缀，warmup 期所有依赖列任一为 null 时本列也为 null
+  - 多头排列：`is_ma_bull_arrangement` / `is_rsi_bull_arrangement`
+  - 趋势信号：`is_macd_golden_cross`
+  - 价格触界：`is_limit_up` / `is_limit_down` / `is_new_high_60d` / `is_new_low_60d`
 
 ### 2.5 异步 / 数据库访问
 
@@ -393,6 +406,55 @@ registry.register("stocks_cn_sync", handler)
 
 ---
 
+## 四点八、指标文档（MDX）格式约定
+
+**范围**：`pulse-web/src/content/indicator-doc/{domain}/{anchor}.mdx`（domain ∈ `trend` / `momentum` / `volume` / `moneyflow` / `tools`）。
+
+### 4.8.1 文件位置与命名
+
+- 路径：`pulse-web/src/content/indicator-doc/{domain}/{anchor}.mdx`
+- `{anchor}` 必须与 `pulse-web/src/lib/indicator-doc-nav.ts` 中注册的 `anchor` 字段**完全一致**
+- 校验脚本：`pulse-web/scripts/check-indicator-anchors.ts`（已接入 `pnpm typecheck`）
+
+### 4.8.2 强制 7 节结构
+
+每篇指标文档**必须**按以下顺序与节标题书写，缺一不可、不可重排：
+
+1. `## {中文标题}` — 一级标题（见 §4.8.3）
+2. 紧接一段话简介：指标定位 + 主要用途 + 单位
+3. `### 公式` — KaTeX 公式块，用 `$$ ... $$` 包裹；多步骤公式分多个块
+4. `### 例子` — 用一段表格演示一次计算；warmup 期用 null 标记
+5. `### 函数签名` — Python 代码块写 `compute_xxx(df: pd.DataFrame) -> pd.DataFrame`，下一行注明 `位于 pulse_core/indicators/{domain}.py`
+6. `### 参数说明` — 用 `- df — 含 {输入列清单}，已按 ts_code + trade_date 排序` 格式逐项列出
+7. `### 输出列` — 三列表格 `| 字段 | 窗口 | 含义 |`，每个新增列一行
+8. `### 注意事项` — bullet 列表，覆盖 warmup 行数、除零/NaN 处理、阈值类信号归属（`screener/` 或 `risk/`）、多股隔离
+
+样板请参考：`pulse-web/src/content/indicator-doc/momentum/atr.mdx`、`momentum/rsi.mdx`、`trend/ma.mdx`。
+
+### 4.8.3 标题格式（重要）
+
+- 一级标题**只用** markdown `## 中文标题`
+- **禁止**用 `<h2 id="...">中文标题</h2>` 的 HTML 占位写法
+- 锚点 ID 由 `rehype-slug` 从标题文本自动生成；nav 的 `anchor` 字段在 URL hash 中工作
+- placeholder（新建未填充时）也用 `## 待补充：{中文标题}`，不要混用 HTML
+
+### 4.8.4 MDX 转义陷阱
+
+- `<` 后紧跟字母/数字（如 `<5万`）会被 MDX 当 JSX 标签解析，**必须**写成 HTML 实体 `&lt;5万`
+- `>` 在大多数位置安全，不需要转义；但行首作为引用块要小心
+- 反引号 `` ` `` 在表格单元格内正常使用，无需转义
+- 中文括号 `（）` 不触发 MDX 解析，与英文括号 `()` 在 KaTeX 外可混用
+
+### 4.8.5 KaTeX 公式约定
+
+- 字段名用 `\text{xxx}`，下划线必须转义为 `\_`：`\text{main\_net\_amount}`
+- 单步公式独占一个 `$$ ... $$` 块
+- 多步推导拆多块，便于阅读和换行
+- 行内变量引用用 `$ ... $`：`这里直接使用 $\text{avg\_gain}$`
+- 求和符号写法：`\sum_{i=0}^{n-1}`；均值写法：`\frac{1}{n}\sum_{i=0}^{n-1} x_{t-i}`
+
+---
+
 ## 五、环境变量
 
 - 全部 `UPPER_SNAKE_CASE`
@@ -531,3 +593,4 @@ TS:     "MacdCross"
 | 2026-05-21 | v2.0 | 三服务重命名（engine/api/web → pulse-core/pulse-api/pulse-web）；Screener → Strategy + 新增 Filter/Track 契约；新增 §4.5 JSONB 边界 + §4.6 软删除规则；环境变量前缀 `ENGINE_` → `CORE_`；commit scope 同步 | Atlas |
 | 2026-05-23 | v2.1 | 新增 §4.7 定时任务命名规则；§四 跨语言契约表增加 `job_name` 行 | Atlas |
 | 2026-05-23 | v2.2 | §4.7 重写：拆分「同步类 / 领域批量」两类命名（消除 v2.1 「动词在前」与示例 `screener_runner` / `evening_ingestion` 的自相矛盾） | Atlas |
+| 2026-05-31 | v2.3 | §2.1 新增 indicators 文件命名约定；新增 §四点八 指标文档（MDX）格式约定（锁定 7 节结构 + 标题 `##` 写法 + 转义陷阱 + KaTeX 约定） | Atlas |
