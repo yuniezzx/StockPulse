@@ -1,0 +1,60 @@
+## 主力净额
+
+主力（大单 + 特大单）资金动向是短线情绪的核心信号。净流入金额反映绝对力度，占比修正股票市值差异，5 日均值平滑单日噪音观察趋势。
+
+### 公式
+
+$$
+\text{main\_net\_amount}_t = (\text{buy\_lg} + \text{buy\_elg}) - (\text{sell\_lg} + \text{sell\_elg})
+$$
+
+$$
+\text{main\_net\_ratio}_t = \frac{\text{main\_net\_amount}_t}{\text{amount}_t}
+$$
+
+$$
+\text{main\_net\_amount\_ma5}_t = \frac{1}{5}\sum_{i=0}^{4} \text{main\_net\_amount}_{t-i}
+$$
+
+### 例子
+
+构造一行：buy_lg=500 万 + buy_elg=300 万，sell_lg=400 万 + sell_elg=200 万，amount=2000 万，则 main_net = 200 万，ratio = 0.10。
+
+| 项目 | 金额（元） |
+|------|------------|
+| buy_lg_amount | 5,000,000 |
+| buy_elg_amount | 3,000,000 |
+| sell_lg_amount | 4,000,000 |
+| sell_elg_amount | 2,000,000 |
+| amount | 20,000,000 |
+| main_net_amount | 2,000,000 |
+| main_net_ratio | 0.10 |
+
+### 函数签名
+
+```python
+compute_main_net(df: pd.DataFrame) -> pd.DataFrame
+```
+
+位于 `pulse_core/indicators/moneyflow.py`。
+
+### 参数说明
+
+- df — 含 ts_code / trade_date / buy_lg_amount / buy_elg_amount / sell_lg_amount / sell_elg_amount / amount，已按 ts_code + trade_date 排序
+
+### 输出列
+
+| 字段 | 窗口 | 含义 |
+|------|------|------|
+| `main_net_amount` | 单日 | 主力净流入金额，单位=元 |
+| `main_net_ratio` | 单日 | 主力净流入占成交额比例，单位=无（[-1, 1]） |
+| `main_net_amount_ma5` | 5 日 | 主力净流入 5 日均值，单位=元 |
+
+### 注意事项
+
+- 主力 = 大单（20万–100万）+ 特大单（≥100万），与 moneyflow_cn 单类规则一致
+- amount 来自 daily_cn，单位=元（ingestion 层已 ×1000 转换），与 moneyflow_cn.amount 系列单位一致
+- 严格 NULL warmup：main_net_amount_ma5 前 4 行 NULL
+- 除零防御：amount == 0 时 main_net_ratio = NULL
+- main_net_ratio 的"主力流入大于 X%"等阈值归 `screener/`
+- 多股隔离：按 ts_code 分组计算 ma5

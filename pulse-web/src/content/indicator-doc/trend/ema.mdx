@@ -1,0 +1,46 @@
+## EMA 指数均线
+
+指数移动平均线（Exponential Moving Average），对近期价格赋予更高权重，比 MA 对价格变化反应更快。
+
+### 公式
+
+$$
+\text{EMA}(t) = \text{EMA}(t-1) \times \left(1 - \frac{2}{N+1}\right) + \text{close\_qfq}(t) \times \frac{2}{N+1}
+$$
+
+### 例子
+
+以 EMA12 为例（N=12，权重 = 2/13 ≈ 0.154），前 3 天 close_qfq 为 10, 11, 12：
+
+| 日期 | close_qfq | EMA12 |
+|------|-----------|-------|
+| 第 1 天 | 10 | 10.00（直接用第一天收盘价初始化） |
+| 第 2 天 | 11 | 10.00 × 0.846 + 11 × 0.154 = **10.15** |
+| 第 3 天 | 12 | 10.15 × 0.846 + 12 × 0.154 = **10.43** |
+
+### 函数签名
+
+```python
+compute_ema(df: pd.DataFrame) -> pd.DataFrame
+```
+
+位于 `pulse_core/indicators/trend.py`。
+
+### 参数说明
+
+- df — 含 ts_code / trade_date / close_qfq，已按 ts_code + trade_date 排序
+
+### 输出列
+
+新增 2 列：
+
+| 字段 | span | 含义 |
+|------|------|------|
+| `ema12` | 12 日 | 短期指数均线，MACD 快线基础 |
+| `ema26` | 26 日 | 中期指数均线，MACD 慢线基础 |
+
+### 注意事项
+
+- 从第一天起即有值，不存在 null 窗口期
+- 多股隔离：按 ts_code 分组计算，不同股票之间互不污染
+- 依赖前复权：基于 close_qfq，需先调用 apply_qfq
