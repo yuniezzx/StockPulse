@@ -191,6 +191,8 @@ Tushare
 - `screener/tracks/`（赛道配置）= 声明式组合上面的工具
 - 一个策略可被多个赛道复用
 
+→ 选股子系统的核心抽象（`PickContext` / `Filter` / `Strategy` / `Scorecard`）、JSONB 契约、Runner 流程详见 [`screener.md`](screener.md)。
+
 ### 5.2 买卖分离
 
 | 行为 | 决策者 | 物理位置 |
@@ -496,12 +498,13 @@ PG 配置:
 |---|---|---|
 | `architecture.md`（本文） | 架构决策、模块边界、数据流、技术选型 | 命名规则、API 细节、表结构 |
 | `naming-conventions.md` | 命名 / 字段 / SQL / 文件名规则 | 架构、业务逻辑 |
+| `screener.md` | 选股子系统契约：抽象、JSONB 形状、Filter/Strategy/Scorecard 协议、Runner 流程 | 架构推导、命名规则、其他子系统 |
 | `AGENTS.md` | AI 工作守则、目录速查、checklist、命令 | 架构推导、为什么 |
 | `README.md` | 一句话介绍 + 快速跑起来 + 文档导航 | 细节（全部链接到上述三份） |
 
 **冲突解决顺序**（弱 → 强）：
 ```
-README < AGENTS < architecture < naming-conventions < 用户当次明确指示
+README < AGENTS < architecture < screener < naming-conventions < 用户当次明确指示
 ```
 
 ---
