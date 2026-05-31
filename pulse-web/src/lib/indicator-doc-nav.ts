@@ -24,7 +24,6 @@ const indicatorDocNavData = [
       { anchor: "ma", title: "MA 均线", hint: "MA5/10/20/60" },
       { anchor: "ema", title: "EMA 指数均线", hint: "EMA12/26" },
       { anchor: "macd", title: "MACD", hint: "DIF/DEA/Hist" },
-      { anchor: "is-ma-bull-arrangement", title: "均线多头排列" },
     ],
   },
   {
