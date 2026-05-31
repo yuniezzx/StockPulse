@@ -8,8 +8,6 @@ services:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      TZ: Asia/Shanghai
-      PGTZ: Asia/Shanghai
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
