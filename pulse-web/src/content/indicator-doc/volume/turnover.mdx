@@ -1,3 +1,55 @@
-<h2 id="turnover">换手率与均值</h2>
+## 换手率与均值
 
-待补充：公式 / 边界 / 示例。
+换手率是流通股本中当日成交比例，比绝对成交量更能反映个股活跃度（剔除股本规模影响）。换手放大倍数衡量当前活跃度相对近 5 日的偏离。
+
+### 公式
+
+$$
+\text{turnover\_rate\_ma5}_t = \frac{1}{5}\sum_{i=0}^{4} \text{turnover\_rate}_{t-i}
+$$
+
+$$
+\text{turnover\_rate\_ratio}_5 = \frac{\text{turnover\_rate}_t}{\text{turnover\_rate\_ma5}_t}
+$$
+
+### 例子
+
+5 日 turnover_rate 序列 [3.0, 3.5, 2.8, 3.2, 6.0]（单位 %），第 5 天 ma5 = 3.7，ratio = 6.0/3.7 ≈ 1.62。
+
+| 日期 | turnover_rate(%) | turnover_rate_ma5 | turnover_rate_ratio_5 |
+|------|------------------|-------------------|-----------------------|
+| 第 1 天 | 3.0 | null | null |
+| 第 2 天 | 3.5 | null | null |
+| 第 3 天 | 2.8 | null | null |
+| 第 4 天 | 3.2 | null | null |
+| 第 5 天 | 6.0 | 3.7 | 1.62 |
+
+第 5 天：$\text{ma5} = (3.0 + 3.5 + 2.8 + 3.2 + 6.0) / 5 = 3.7$。
+
+### 函数签名
+
+```python
+compute_turnover_ratio(df: pd.DataFrame) -> pd.DataFrame
+```
+
+位于 `pulse_core/indicators/volume.py`。
+
+### 参数说明
+
+- df — 含 ts_code / trade_date / turnover_rate，已按 ts_code + trade_date 排序
+
+### 输出列
+
+| 字段 | 窗口 | 含义 |
+|------|------|------|
+| `turnover_rate_ma5` | 5 日 | 换手率 5 日均值，单位=% |
+| `turnover_rate_ratio_5` | 5 日 | 当日换手率 / 均值，单位=无 |
+
+### 注意事项
+
+- 输入 turnover_rate 来自 daily_basic_cn，单位 %（3.5 表示 3.5%），输出 ma5 保持 %
+- 比 vol_ratio_5 更适合跨股比较：剔除股本规模影响
+- 严格 NULL warmup：前 4 行 NULL
+- 除零防御：turnover_rate_ma5 == 0 时 ratio_5 = NULL
+- 停牌等缺失行 daily_basic_cn 不写入，indicator 函数遇 NaN 自然传播
+- 多股隔离：按 ts_code 分组计算

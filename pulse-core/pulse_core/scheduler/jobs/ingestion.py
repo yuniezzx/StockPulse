@@ -12,6 +12,7 @@ from datetime import datetime
 
 from loguru import logger
 
+from pulse_core.indicators.runner import sync_daily_indicators_cn
 from pulse_core.ingestion._cli import IngestionArgs
 from pulse_core.ingestion.adj_factor_cn import sync_adj_factor_cn
 from pulse_core.ingestion.daily_basic_cn import sync_daily_basic_cn
@@ -103,6 +104,7 @@ async def evening_ingestion_handler(run: JobRun) -> JobResult:
         ("stk_limit_cn", sync_stk_limit_cn),
         ("daily_basic_cn", sync_daily_basic_cn),
         ("moneyflow_cn", sync_moneyflow_cn),
+        ("daily_indicators", sync_daily_indicators_cn),
     ]
     success: dict[str, int] = {}
     failed: dict[str, str] = {}
