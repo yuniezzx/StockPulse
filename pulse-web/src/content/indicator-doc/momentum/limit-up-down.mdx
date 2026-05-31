@@ -1,0 +1,55 @@
+## 涨停 / 跌停
+
+涨停 / 跌停是 A 股交易制度产生的价格边界信号，用来标记当日收盘价是否精确触及交易所给出的涨停价或跌停价。
+
+### 公式
+
+$$
+\text{is\_limit\_up}_t = (\text{close}_t = \text{up\_limit}_t)
+$$
+
+$$
+\text{is\_limit\_down}_t = (\text{close}_t = \text{down\_limit}_t)
+$$
+
+若 `close` / `up_limit` / `down_limit` 中参与判断的任一字段缺失，则对应输出为 NULL。
+
+### 例子
+
+| 日期 | close | up_limit | down_limit | is_limit_up | is_limit_down |
+|------|-------|----------|------------|-------------|---------------|
+| 第 1 天 | 10.0 | 11.0 | 9.0 | false | false |
+| 第 2 天 | 11.0 | 11.0 | 9.0 | true | false |
+| 第 3 天 | 9.0 | 11.0 | 9.0 | false | true |
+| 第 4 天 | null | 11.0 | 9.0 | null | null |
+
+第 2 天：`close == up_limit`，所以 `is_limit_up = true`。
+
+第 3 天：`close == down_limit`，所以 `is_limit_down = true`。
+
+### 函数签名
+
+```python
+compute_limit_flags(df: pd.DataFrame) -> pd.DataFrame
+```
+
+位于 `pulse_core/indicators/momentum.py`。
+
+### 参数说明
+
+- df — 含 ts_code / trade_date / close / up_limit / down_limit；调用方需先 join `stk_limit_cn` 表
+
+### 输出列
+
+| 字段 | 类型 | 含义 |
+|------|------|------|
+| `is_limit_up` | nullable Boolean | 收盘价是否精确等于涨停价 |
+| `is_limit_down` | nullable Boolean | 收盘价是否精确等于跌停价 |
+
+### 注意事项
+
+- 使用未复权 `close`，不是 `close_qfq`；这与多数基于复权价的 indicators 不同，避免除权复权后误判涨跌停
+- 涨跌停幅度因板块和股票状态不同：主板 ±10%，创业板 / 科创板 ±20%，北交所 ±30%，ST 股 ±5%，新股上市前 5 个交易日无限制；必须使用 `stk_limit_cn` 表中的精确 `up_limit` / `down_limit`，不要自行按 ±10% 计算
+- 调用方负责 join `stk_limit_cn` 表，本函数只做纯计算
+- 使用完全相等判断：涨跌停价是规则计算后的精确价格，不做浮点近似比较
+- 缺数据时输出 NULL：`close` 缺失则两个标记均为 NULL；`up_limit` 或 `down_limit` 缺失则对应标记为 NULL
