@@ -42,6 +42,7 @@ class ScreenerData(TypedDict):
     volume:        pd.DataFrame   # 当日 daily_volume_indicators_cn 切片
     moneyflow_ind: pd.DataFrame   # 当日 daily_moneyflow_indicators_cn 切片
     history:       pd.DataFrame   # 历史窗口(长表)
+    stocks:        pd.DataFrame   # stocks_cn 元数据表(name / list_date / delist_date / industry)
     trade_date:    date
     universe:      list[str]      # 当前候选 ts_code(已剔除停牌)
 
