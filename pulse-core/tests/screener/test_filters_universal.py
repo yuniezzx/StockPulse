@@ -8,9 +8,9 @@ import pandas as pd
 import pytest
 
 from pulse_core.screener.base import ScreenerData
-from pulse_core.screener.filters.layer1.low_liquidity_filter import LowLiquidityFilter
-from pulse_core.screener.filters.layer1.new_stock_filter import NewStockFilter
-from pulse_core.screener.filters.layer1.st_filter import STFilter
+from pulse_core.screener.filters.universal.low_liquidity_filter import LowLiquidityFilter
+from pulse_core.screener.filters.universal.new_stock_filter import NewStockFilter
+from pulse_core.screener.filters.universal.st_filter import STFilter
 
 
 def _make_stocks(rows: list[dict]) -> pd.DataFrame:
