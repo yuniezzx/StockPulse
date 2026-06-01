@@ -112,16 +112,17 @@ async def _fetch_history_window(
     start: date,
     end: date,
 ) -> pd.DataFrame:
-    """加载历史窗口,JOIN daily_cn + daily_basic_cn(为 LowLiquidityFilter 提供 amount)。
+    """加载历史窗口。
 
     长表格式:(ts_code, trade_date) 双索引,按 ts_code 分组后 tail(N) 取最近 N 日。
+    amount 来自 daily_cn(Tushare 原始 daily 接口);turnover_rate 来自 daily_basic_cn。
     """
     rows = await conn.fetch(
         """
         SELECT
             d.ts_code, d.trade_date,
-            d.open, d.high, d.low, d.close, d.vol, d.pct_chg,
-            b.amount, b.turnover_rate
+            d.open, d.high, d.low, d.close, d.vol, d.pct_chg, d.amount,
+            b.turnover_rate
         FROM daily_cn d
         LEFT JOIN daily_basic_cn b
             ON b.ts_code = d.ts_code AND b.trade_date = d.trade_date

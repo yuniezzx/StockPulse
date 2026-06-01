@@ -9,9 +9,12 @@ Phase 3 仅注册 Layer 1 universal filter;Phase 4 加 Layer 2 + strategy。
 from __future__ import annotations
 
 from pulse_core.screener.base import Filter, Strategy
+from pulse_core.screener.filters.track.min_price_filter import MinPriceFilter
+from pulse_core.screener.filters.track.recent_active_filter import RecentActiveFilter
 from pulse_core.screener.filters.universal.low_liquidity_filter import LowLiquidityFilter
 from pulse_core.screener.filters.universal.new_stock_filter import NewStockFilter
 from pulse_core.screener.filters.universal.st_filter import STFilter
+from pulse_core.screener.strategies.limit_up_replay import LimitUpReplayStrategy
 
 # Layer 1 通用 Filter:Runner 硬编码顺序执行,不在 yaml 中声明
 UNIVERSAL_FILTERS: tuple[type[Filter], ...] = (
@@ -20,11 +23,16 @@ UNIVERSAL_FILTERS: tuple[type[Filter], ...] = (
     LowLiquidityFilter,
 )
 
-# Layer 2 赛道专属 Filter:yaml 中按 name 引用,Phase 4 起逐步填充
-_TRACK_FILTERS: dict[str, type[Filter]] = {}
+# Layer 2 赛道专属 Filter:yaml 中按 name 引用
+_TRACK_FILTERS: dict[str, type[Filter]] = {
+    "min_price_filter":     MinPriceFilter,
+    "recent_active_filter": RecentActiveFilter,
+}
 
-# Strategy 注册表:yaml 中按 name 引用,Phase 4 起逐步填充
-_STRATEGIES: dict[str, type[Strategy]] = {}
+# Strategy 注册表:yaml 中按 name 引用
+_STRATEGIES: dict[str, type[Strategy]] = {
+    "limit_up_replay": LimitUpReplayStrategy,
+}
 
 
 def get_filter(name: str) -> type[Filter]:

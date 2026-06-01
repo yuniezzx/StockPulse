@@ -12,9 +12,11 @@ from pulse_core.screener.base import PickContext, RiskDim
 
 
 def compute_liquidity_risk(ctx: PickContext) -> RiskDim:
-    """流动性风险维度。基于 daily_basic_cn.amount 横截面分位数。
+    """流动性风险维度。基于 daily_cn.amount 横截面分位数。
 
     详见 docs/screener.md §5.4。
+
+    数据来源:amount 在 daily_cn 表(不是 daily_basic_cn);从 ctx.daily / ctx.data["daily"] 取。
 
     算法:
         amount_rank_pct = 该股 amount 在当日 universe 全体中的百分位排名(0~1)
@@ -25,14 +27,14 @@ def compute_liquidity_risk(ctx: PickContext) -> RiskDim:
     Raises:
         ValueError: 该股 amount 缺失或 NaN(应该在 low_liquidity_filter 阶段已剔除)。
     """
-    amount = ctx.basic.get("amount")
+    amount = ctx.daily.get("amount")
     if amount is None or (isinstance(amount, float) and math.isnan(amount)):
         raise ValueError(
             f"compute_liquidity_risk: {ctx.ts_code} 的 amount 为空/NaN,"
             "应在 Layer 1 low_liquidity_filter 阶段已剔除"
         )
 
-    all_amount = ctx.data["basic"]["amount"]
+    all_amount = ctx.data["daily"]["amount"]
     rank_pct = float(all_amount.rank(pct=True).loc[ctx.ts_code])
     score = round(rank_pct * 100, 2)
 
