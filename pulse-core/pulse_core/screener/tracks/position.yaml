@@ -1,0 +1,16 @@
+# 中线赛道（position）
+# 持有周期：月度（20+ 个交易日）
+# 适用场景：基本面 + 趋势共振、行业景气度叠加
+# 详见 docs/screener.md §10.2
+#
+# ⚠️ 本期骨架占位，filters / strategies 均待实现
+
+track:       position
+description: "中线：基本面 + 趋势共振，月度持有"
+top_n:       15
+
+filters:
+  - fundamental_base_filter   # TODO: PE / PB / ROE 基本面门槛
+
+strategies:
+  - trend_breakout            # TODO: 长周期趋势突破策略

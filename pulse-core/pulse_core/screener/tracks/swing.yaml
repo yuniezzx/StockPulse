@@ -1,0 +1,16 @@
+# 波段赛道（swing）
+# 持有周期：5~20 个交易日
+# 适用场景：中线上行趋势中的缩量回踩、突破回踩确认
+# 详见 docs/screener.md §10.2
+#
+# ⚠️ 本期骨架占位，filters / strategies 均待实现
+
+track:       swing
+description: "波段：中线上行趋势中的缩量回踩，5~20 日持有"
+top_n:       20
+
+filters:
+  - ma20_upward_filter        # TODO: 20 日均线向上
+
+strategies:
+  - volume_shrink_rebound     # TODO: 缩量回踩反弹策略
