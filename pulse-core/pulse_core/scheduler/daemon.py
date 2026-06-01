@@ -39,6 +39,7 @@ from pulse_core.scheduler.jobs.ingestion import (
     sync_stocks_cn_handler,
     sync_trade_cal_cn_handler,
 )
+from pulse_core.scheduler.jobs.screener import screener_runner_handler
 from pulse_core.scheduler.registry import Registry
 from pulse_core.scheduler.worker import run_worker
 
@@ -63,6 +64,7 @@ def _register_all_handlers(registry: Registry) -> None:
     registry.register("sync_trade_cal_cn", sync_trade_cal_cn_handler)
     registry.register("sync_stocks_cn", sync_stocks_cn_handler)
     registry.register("evening_ingestion", evening_ingestion_handler)
+    registry.register("screener_runner", screener_runner_handler)
     logger.info(f"registered {len(registry)} job handlers")
 
 

@@ -40,6 +40,10 @@ async def _fire_evening_ingestion() -> None:
     await _enqueue("evening_ingestion", datetime.now(tz=TZ).replace(microsecond=0))
 
 
+async def _fire_screener_runner() -> None:
+    await _enqueue("screener_runner", datetime.now(tz=TZ).replace(microsecond=0))
+
+
 def build_scheduler() -> AsyncIOScheduler:
     """构造并注册所有 cron 任务的 AsyncIOScheduler。"""
     scheduler = AsyncIOScheduler(timezone=TZ)
@@ -68,6 +72,14 @@ def build_scheduler() -> AsyncIOScheduler:
         CronTrigger(hour=18, minute=30, timezone=TZ),
         id="cron_evening_ingestion",
         name="evening_ingestion @ 18:30 daily (handler checks trade_cal_cn)",
+        misfire_grace_time=3600,
+    )
+
+    scheduler.add_job(
+        _fire_screener_runner,
+        CronTrigger(hour=19, minute=0, timezone=TZ),
+        id="cron_screener_runner",
+        name="screener_runner @ 19:00 daily (handler checks trade_cal_cn)",
         misfire_grace_time=3600,
     )
 
