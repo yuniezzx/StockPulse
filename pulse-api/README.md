@@ -2,8 +2,8 @@
 
 StockPulse API 网关（TypeScript + Fastify）：薄路由 + 用户数据写入 + 通知发送。
 
-> 详细架构 → [`../docs/architecture.md`](../docs/architecture.md) §3
-> 命名规则 → [`../docs/naming-conventions.md`](../docs/naming-conventions.md) §3
+> 详细架构 → [`../docs/architecture.md`](../docs/architecture.md) §3｜DB 设计 → [`../docs/database.md`](../docs/database.md)
+> 命名规则 → [`../docs/naming-conventions.md`](../docs/naming-conventions.md) §四（TypeScript）
 > AI 守则 → [`../AGENTS.md`](../AGENTS.md)
 
 ## 技术栈

@@ -2,8 +2,8 @@
 
 StockPulse 计算引擎（Python + uv）：数据同步 / 指标 / 选股 / 风控 / 校验 / 权重 / 调度。
 
-> 详细架构 → [`../docs/architecture.md`](../docs/architecture.md) §3、§7.3
-> 命名规则 → [`../docs/naming-conventions.md`](../docs/naming-conventions.md) §2、§4.7
+> 详细架构 → [`../docs/architecture.md`](../docs/architecture.md) §3｜调度细节 → [`../docs/scheduling.md`](../docs/scheduling.md)｜DB 设计 → [`../docs/database.md`](../docs/database.md)｜指标系统 → [`../docs/indicators.md`](../docs/indicators.md)
+> 命名规则 → [`../docs/naming-conventions.md`](../docs/naming-conventions.md) §二（数据库）、§一（跨语言契约 / job_name）
 > AI 守则 → [`../AGENTS.md`](../AGENTS.md)
 
 ## 技术栈
@@ -85,12 +85,12 @@ pulse_core/
 - 类名 `PascalCase`，缩写词保留全大写（`MACDStrategy` / `ATR` / `OHLCV`）
 - **ingestion 文件名 = 目标表名**（`daily_cn.py` ↔ `daily_cn` 表）
 - **strategy 类名/`name` 字段 / DB `strategy` 列 / 前端 `strategy-meta.ts` key 四层完全一致**
-- **job_name 三层一致**（`registry.register(...)` 的字符串 ↔ DB `job_runs.job_name` ↔ pulse-api 触发路径），详见 naming-conventions §4.7
+- **job_name 三层一致**（`registry.register(...)` 的字符串 ↔ DB `job_runs.job_name` ↔ pulse-api 触发路径），详见 naming-conventions §一（跨语言契约表 / job_name 子段）
 - 边界铁律：pulse-core **不开 HTTP 给前端**（前端只通过 pulse-api）；写圈 1/2/3 自动数据，不碰圈 4 用户数据
 
 ## 调度子系统
 
-详细设计与决策依据见 [`../docs/architecture.md`](../docs/architecture.md) §7.3。要点：
+详细设计与决策依据见 [`../docs/scheduling.md`](../docs/scheduling.md)。要点：
 
 - `scheduler/daemon.py` 是**唯一进程入口**，同时跑 AsyncIOScheduler + worker
 - 单实例靠 PG advisory lock（key = `0x70756c7365646165`）保证，崩溃自动释放

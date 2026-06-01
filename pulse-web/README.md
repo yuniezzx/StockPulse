@@ -3,7 +3,7 @@
 StockPulse 前端展示层（零业务计算）。
 
 > 详细架构 → [`../docs/architecture.md`](../docs/architecture.md) §3
-> 命名规则 → [`../docs/naming-conventions.md`](../docs/naming-conventions.md) §3
+> 命名规则 → [`../docs/naming-conventions.md`](../docs/naming-conventions.md) §四（TypeScript）
 > AI 守则 → [`../AGENTS.md`](../AGENTS.md)
 
 ## 技术栈

@@ -1,7 +1,7 @@
 # AGENTS.md — StockPulse AI 工作守则
 
-> **精简版**。架构 → [`docs/architecture.md`](docs/architecture.md) ｜ 命名 → [`docs/naming-conventions.md`](docs/naming-conventions.md) ｜ 选股 → [`docs/screener.md`](docs/screener.md)
-> **冲突解决顺序**：本文 < architecture < naming-conventions < 用户当次明确指示
+> **精简版**。架构 → [`docs/architecture.md`](docs/architecture.md) ｜ DB → [`docs/database.md`](docs/database.md) ｜ 调度 → [`docs/scheduling.md`](docs/scheduling.md) ｜ 指标 → [`docs/indicators.md`](docs/indicators.md) ｜ 命名 → [`docs/naming-conventions.md`](docs/naming-conventions.md) ｜ 选股 → [`docs/screener.md`](docs/screener.md)
+> **冲突解决顺序**：README < AGENTS < architecture < screener < database < scheduling < indicators < naming-conventions < 用户当次明确指示
 
 ---
 
@@ -83,37 +83,43 @@ pulse-web/src/
 
 ## 4. 新增 checklist
 
-### 新数据表
-- [ ] `db/migrations/0NN_create_xxx.sql`（表头注释：用途 + 主键 + 单位）
-- [ ] `pulse-core/pulse_core/ingestion/xxx.py`（**同名**）
-- [ ] `pulse-core/sql/verify_xxx.sql`
+### 新数据表（以 `xxx_cn` 为例）
+- [ ] `db/migrations/0YY_create_xxx_cn.sql`
+- [ ] 表头注释：用途 + 主键意图 + 单位换算
+- [ ] `pulse-core/pulse_core/ingestion/xxx_cn.py`（**同名**）
+- [ ] `pulse-core/sql/verify_xxx_cn.sql`
+- [ ] 若有跨表 JOIN：在 ingestion 的 SELECT 中保持列序、命名一致
 
 ### 新指标
 - [ ] `pulse-core/pulse_core/indicators/{domain}.py` 实现 `compute_{indicator}(df)`（domain ∈ trend / momentum / volume / moneyflow）
 - [ ] `pulse-core/tests/indicators/test_{domain}.py` 增加用例
 - [ ] `db/migrations/0NN_create_daily_{domain}_indicators_cn.sql`（首次创建该 domain 表时；后续新增列改 alter）
 - [ ] `pulse-core/pulse_core/indicators/runner.py` 注册 `compute_*` 写入对应 `daily_{domain}_indicators_cn`
-- [ ] `pulse-web/src/content/indicator-doc/{domain}/{anchor}.mdx` 按 7 节结构写文档（详见 naming-conventions §四点八）
+- [ ] `pulse-web/src/content/indicator-doc/{domain}/{anchor}.mdx` 按 7 节结构写文档（详见 indicators.md §3）
 - [ ] `pulse-web/src/lib/indicator-doc-nav.ts` 注册新 `anchor`，与 mdx 文件名一致
 - [ ] `pnpm check:anchors` / `pnpm typecheck` 通过
 
 ### 新选股策略
-- [ ] `pulse-core/pulse_core/screener/strategies/{key}.py`
-- [ ] 类 `{Key}Strategy`，`name = "{key}"`
-- [ ] 在某个 `tracks/{track}.yaml` 注册
-- [ ] `pulse-web/src/lib/strategy-meta.ts` 增加元数据
+- [ ] `pulse-core/pulse_core/screener/strategies/{strategy_key}.py`
+- [ ] 类名 `{StrategyKeyPascalCase}Strategy`，`name = "{strategy_key}"`
+- [ ] 在 `pulse-core/pulse_core/screener/tracks/{track}.yaml` 注册
+- [ ] `pulse-core/tests/test_{strategy_key}.py`
+- [ ] `pulse-web/src/lib/strategy-meta.ts` 增加 key 为 `{strategy_key}` 的元数据条目
+- [ ] DB 不需改 schema（`daily_picks.strategy` 是字符串列）
+- [ ] 验证：`SELECT DISTINCT strategy FROM daily_picks` 应能查到新值
 
 ### 新 API 端点
 - [ ] `pulse-api/src/domains/{feature}/`：routes / service / repository / schemas
-- [ ] Zod schema 字段 camelCase；repository 做 snake → camel 转换
-- [ ] `pulse-web/src/lib/api/{feature}.ts`：`getXxx` / `postXxx`
-- [ ] `pulse-web/src/hooks/use-{feature}.ts`
+- [ ] Zod schema 字段 camelCase；repository 负责 snake → camel 转换
+- [ ] `pulse-web/src/lib/api/{feature}.ts`：导出 `getXxx` / `postXxx` 等函数
+- [ ] `pulse-web/src/types/{feature}.ts`：导出对应 TS 类型（**与后端 Zod 推导类型保持字段一致**）
+- [ ] `pulse-web/src/hooks/use-{feature}.ts`：封装数据获取
 - [ ] `pulse-web/src/pages/{feature}/{view}.tsx`
 
 ### 新通知
 - [ ] pulse-core 写 `notifications_outbox`（`scheduled_at` = 次日 07:00；运维告警立即 NOW()）
-- [ ] pulse-api `notifier/briefing.ts` 决定如何聚合
-- [ ] 通道实现在 `pulse-api/src/notifier/channels/`
+- [ ] `pulse-api/src/notifier/briefing.ts` 增加该事件的聚合规则
+- [ ] 新通道实现放在 `pulse-api/src/notifier/channels/{channel}.ts`
 
 ### 新定时任务
 - [ ] handler 实现：`pulse-core/pulse_core/scheduler/jobs/{domain}.py`
@@ -165,6 +171,13 @@ CREATE TABLE daily (...);                        -- 应 daily_cn
 ingestion/sync_daily.py                          -- 应 daily_cn.py
 ```
 
+### 6.5 Review 必查
+
+1. 新增字段是否泄漏 snake_case 到前端
+2. 新增策略 key 三层是否一致（strategy_key / 类名 / tracks yaml / strategy-meta.ts）
+3. 新增表是否带正确的市场后缀（如 `_cn`）
+4. migration 表头注释是否齐全（用途 / 单位）
+
 ---
 
 ## 7. 运行命令
@@ -207,3 +220,11 @@ cd pulse-core && uv run pytest
   - `feat(core): add macd cross strategy`
   - `fix(api): handle empty picks in resonance query`
   - `docs(arch): 重构架构文档 v2`
+
+---
+
+## 修订记录
+
+| 版本 | 日期 | 变更 |
+|---|---|---|
+| v2.1 | 2026-06-01 | 恢复并消化 holdings 块 B (checklist) + 块 F (Review 必查)；接入 database/scheduling/indicators；修 MDX broken-ref |

@@ -12,12 +12,15 @@
 | 文档 | 内容 |
 |---|---|
 | [`docs/architecture.md`](docs/architecture.md) | **架构决策**：功能版图、三服务边界、数据流、关键机制、目录结构、技术选型 |
+| [`docs/database.md`](docs/database.md) | **DB 设计**：圈层 / JSONB / 软删除 / migration / 表清单 |
+| [`docs/scheduling.md`](docs/scheduling.md) | **任务调度**：APScheduler / scheduler-worker / cron 表 |
+| [`docs/indicators.md`](docs/indicators.md) | **指标系统**：列命名清单 / MDX 7 节格式 |
 | [`docs/naming-conventions.md`](docs/naming-conventions.md) | **命名规则**：DB / Python / TS / 文件名 / 字段对齐 |
 | [`AGENTS.md`](AGENTS.md) | **AI 工作守则**：目录速查、新增 checklist、运行命令、红线 |
 
 **冲突解决顺序**（弱 → 强）：
 ```
-README < AGENTS < architecture < naming-conventions < 用户当次明确指示
+README < AGENTS < architecture < screener < database < scheduling < indicators < naming-conventions < 用户当次明确指示
 ```
 
 ---
