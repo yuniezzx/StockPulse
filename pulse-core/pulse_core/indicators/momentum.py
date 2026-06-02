@@ -34,7 +34,8 @@ def compute_rsi(df: pd.DataFrame) -> pd.DataFrame:
         & (result["rsi12"] > result["rsi24"])
     )
     result["is_rsi_bull_arrangement"] = bull.astype("boolean")
-    result.loc[~result[["rsi6", "rsi12", "rsi24"]].notna().all(axis=1), "is_rsi_bull_arrangement"] = pd.NA
+    any_null = ~result[["rsi6", "rsi12", "rsi24"]].notna().all(axis=1)
+    result.loc[any_null, "is_rsi_bull_arrangement"] = pd.NA
 
     result = result.sort_values("_row_order").drop(columns=["_row_order"]).reset_index(drop=True)
     return result

@@ -31,7 +31,8 @@ def compute_ma(df: pd.DataFrame) -> pd.DataFrame:
         & (result["ma20"] > result["ma60"])
     )
     result["is_ma_bull_arrangement"] = bull.astype("boolean")
-    result.loc[~result[["ma5", "ma10", "ma20", "ma60"]].notna().all(axis=1), "is_ma_bull_arrangement"] = pd.NA
+    any_null = ~result[["ma5", "ma10", "ma20", "ma60"]].notna().all(axis=1)
+    result.loc[any_null, "is_ma_bull_arrangement"] = pd.NA
 
     result = result.sort_values("_row_order").drop(columns=["_row_order"]).reset_index(drop=True)
     return result
@@ -45,7 +46,7 @@ def compute_ema(df: pd.DataFrame) -> pd.DataFrame:
         result[f"ema{span}"] = result.groupby("ts_code")["close_qfq"].transform(
             lambda s, sp=span: s.ewm(span=sp, adjust=False).mean()
         )
-    
+
     return result
 
 
@@ -55,7 +56,9 @@ def compute_macd(df: pd.DataFrame) -> pd.DataFrame:
 
     result["dif"] = result["ema12"] - result["ema26"]
 
-    result["dea"] = result.groupby("ts_code")["dif"].transform(lambda s: s.ewm(span=9, adjust=False).mean())
+    result["dea"] = result.groupby("ts_code")["dif"].transform(
+        lambda s: s.ewm(span=9, adjust=False).mean()
+    )
 
     result["hist"] = (result["dif"] - result["dea"]) * 2  # A 股惯例 ×2
 
