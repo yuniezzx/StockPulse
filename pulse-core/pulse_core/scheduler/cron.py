@@ -44,6 +44,10 @@ async def _fire_screener_runner() -> None:
     await _enqueue("screener_runner", datetime.now(tz=TZ).replace(microsecond=0))
 
 
+async def _fire_cleanup_screener_history() -> None:
+    await _enqueue("cleanup_screener_history", datetime.now(tz=TZ).replace(microsecond=0))
+
+
 def build_scheduler() -> AsyncIOScheduler:
     """构造并注册所有 cron 任务的 AsyncIOScheduler。"""
     scheduler = AsyncIOScheduler(timezone=TZ)
@@ -80,6 +84,14 @@ def build_scheduler() -> AsyncIOScheduler:
         CronTrigger(hour=19, minute=0, timezone=TZ),
         id="cron_screener_runner",
         name="screener_runner @ 19:00 daily (handler checks trade_cal_cn)",
+        misfire_grace_time=3600,
+    )
+
+    scheduler.add_job(
+        _fire_cleanup_screener_history,
+        CronTrigger(day_of_week="sun", hour=4, minute=0, timezone=TZ),
+        id="cron_cleanup_screener_history",
+        name="cleanup_screener_history @ Sun 04:00 weekly (retention 365d)",
         misfire_grace_time=3600,
     )
 

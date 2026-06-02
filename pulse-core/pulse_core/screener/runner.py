@@ -149,18 +149,26 @@ async def _run_track(
         )
 
         picks = _run_strategies(cfg.get("strategies", []), data, candidates)
-        top_n = int(cfg.get("top_n", 0))
-        top_picks = sorted(
+        all_sorted = sorted(
             picks,
             key=lambda p: p.scorecard.axis_scores["final"],
             reverse=True,
-        )[:top_n]
+        )
+        all_with_rank = [
+            PickRow(ts_code=p.ts_code, strategy=p.strategy, scorecard=p.scorecard, rank=i + 1)
+            for i, p in enumerate(all_sorted)
+        ]
+        top_n = int(cfg.get("top_n", 0))
+        top_picks = all_with_rank[:top_n]
         logger.info(
-            f"Stage 3 {track_name}: scored={len(picks)} top_n={top_n} kept={len(top_picks)}"
+            f"Stage 3 {track_name}: scored={len(picks)} top_n={top_n} "
+            f"top={len(top_picks)} candidates={len(all_with_rank)}"
         )
 
-        inserted = await write_track_picks(conn, data["trade_date"], track_name, top_picks)
-        return TrackResult(track=track_name, status="success", inserted=inserted)
+        result = await write_track_picks(
+            conn, data["trade_date"], track_name, top_picks, all_with_rank,
+        )
+        return TrackResult(track=track_name, status="success", inserted=result.picks_inserted)
 
     except Exception as e:
         logger.error(f"Track {track_name} FAILED: {e}", exc_info=True)

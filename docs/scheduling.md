@@ -85,6 +85,8 @@ uv run python -m pulse_core.scheduler.daemon
 | `sync_trade_cal_cn` | 18:00 daily | 同步交易日历（为次日盘前准备） |
 | `sync_stocks_cn` | 18:02 daily | 同步股票列表（新股 / 退市，错开 2 分钟避免与 sync_trade_cal_cn 同秒入队） |
 | `evening_ingestion` | 18:30 daily | 拉日线 / 复权 / 涨跌停 / 估值 / 资金流 + 计算 4 张派生指标表（6 子任务串行，支持 partial） |
+| `screener_runner` | 19:00 daily | 选股漏斗（5 stage：交易日检查 / 数据加载 / Layer 1+2 过滤 / 策略打分 / 双表原子写入；非交易日 skipped；track 部分失败 partial） |
+| `cleanup_screener_history` | 04:00 weekly (Sun) | 滚动清理 daily_picks + daily_pick_candidates 超过 365 天的行（单事务双表删除） |
 
 ---
 
@@ -92,7 +94,6 @@ uv run python -m pulse_core.scheduler.daemon
 
 以下 job 待对应模块落地后再加：
 
-- `screener_runner` — 选股漏斗（待 screener 模块）
 - `risk_scan` — 风控扫描（待 risk 模块）
 - `morning_briefing` — 早报生成（待 outbox 模块）
 

@@ -1,23 +1,18 @@
-"""选股 (screener) job handler。
+"""选股 (screener) job handlers。
 
 handler 合同：
   async def screener_runner_handler(run: JobRun) -> JobResult
+  async def cleanup_screener_history_handler(run: JobRun) -> JobResult
 
-调度时刻见 docs/scheduling.md §5（19:00 daily，紧跟 18:30 evening_ingestion）。
-非交易日跳过整个漏斗，避免空跑 + 在 job_runs 留 partial 噪声。
-
-状态映射（screener.RunResult.status → JobResult.status）：
-  success → STATUS_SUCCESS
-  partial → STATUS_PARTIAL（至少一个 track 失败、至少一个成功）
-  failed  → STATUS_FAILED（Stage 0/1 失败 或 全部 track 失败）
-
-总行数 rows_affected = 各 track success.inserted 之和。
-details 直接复用 RunResult.to_details()，含每个 track 的 status / inserted / error。
+调度时刻见 docs/scheduling.md §5。
+非交易日跳过 runner，避免空跑 + 在 job_runs 留 partial 噪声。
+cleanup 不查交易日历（每周日 04:00 跑，与交易日无关）。
 """
 
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Final
 
 from loguru import logger
 
@@ -122,3 +117,57 @@ async def screener_runner_handler(run: JobRun) -> JobResult:
             else "screener pipeline failed before per-track stage"
         ),
     )
+
+
+_RETENTION_DAYS: Final = 365
+
+_CLEANUP_PICKS_SQL = """
+DELETE FROM daily_picks
+WHERE trade_date < CURRENT_DATE - $1::int
+"""
+
+_CLEANUP_CANDIDATES_SQL = """
+DELETE FROM daily_pick_candidates
+WHERE trade_date < CURRENT_DATE - $1::int
+"""
+
+
+async def cleanup_screener_history_handler(run: JobRun) -> JobResult:
+    """滚动清理超过 365 天的 daily_picks + daily_pick_candidates。
+
+    单事务双表删除：保证两表保留窗口一致，避免 picks 在而 candidates 没了的不一致。
+    幂等：重跑只清掉新越过窗口的行，无副作用。
+    """
+    async with acquire() as conn:
+        async with conn.transaction():
+            picks_tag = await conn.execute(_CLEANUP_PICKS_SQL, _RETENTION_DAYS)
+            cand_tag = await conn.execute(_CLEANUP_CANDIDATES_SQL, _RETENTION_DAYS)
+
+    picks_deleted = _parse_rowcount(picks_tag)
+    cand_deleted = _parse_rowcount(cand_tag)
+    total = picks_deleted + cand_deleted
+
+    logger.info(
+        f"[run_id={run.id}] cleanup_screener_history: "
+        f"retention={_RETENTION_DAYS}d picks_deleted={picks_deleted} "
+        f"candidates_deleted={cand_deleted}"
+    )
+
+    return JobResult(
+        status=STATUS_SUCCESS,
+        rows_affected=total,
+        details={
+            "retention_days": _RETENTION_DAYS,
+            "picks_deleted": picks_deleted,
+            "candidates_deleted": cand_deleted,
+        },
+    )
+
+
+def _parse_rowcount(command_tag: str) -> int:
+    """asyncpg execute 返回 'DELETE 5' 形式的 tag,提取末尾整数。"""
+    _, _, n = command_tag.rpartition(" ")
+    try:
+        return int(n)
+    except ValueError:
+        return 0

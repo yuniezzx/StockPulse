@@ -61,8 +61,29 @@ async def test_scalp_track_e2e_real_db():
                 f"DB 写入数 {count} 与 Runner 报告 {scalp_result.inserted} 不符"
             )
 
+            cand_count = await conn.fetchval(
+                "SELECT COUNT(*) FROM daily_pick_candidates "
+                "WHERE trade_date = $1 AND track = 'scalp' AND strategy = 'limit_up_replay'",
+                trade_date,
+            )
+            assert cand_count >= count, (
+                f"candidates 行数 {cand_count} 应 ≥ picks 行数 {count}"
+            )
+            max_rank = await conn.fetchval(
+                "SELECT MAX(rank) FROM daily_pick_candidates "
+                "WHERE trade_date = $1 AND track = 'scalp'",
+                trade_date,
+            )
+            assert max_rank == cand_count, (
+                f"rank 应连续:max={max_rank} vs count={cand_count}"
+            )
+
             await conn.execute(
                 "DELETE FROM daily_picks WHERE trade_date = $1 AND track = 'scalp'",
+                trade_date,
+            )
+            await conn.execute(
+                "DELETE FROM daily_pick_candidates WHERE trade_date = $1 AND track = 'scalp'",
                 trade_date,
             )
     finally:
