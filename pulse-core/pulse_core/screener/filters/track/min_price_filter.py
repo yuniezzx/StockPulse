@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import math
 
-from pulse_core.screener.base import FilterResult, ScreenerData
+from pulse_core.screener.contracts import FilterResult, ScreenerData
 
 
 class MinPriceFilter:
@@ -22,7 +22,7 @@ class MinPriceFilter:
         daily = data["daily"]
         universe = data["universe"]
         passed: set[str] = set()
-        rejected: dict[str, dict] = {}
+        rejected: dict[str, dict[str, object]] = {}
 
         for ts_code in universe:
             if ts_code not in daily.index:

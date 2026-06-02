@@ -23,8 +23,10 @@ import math
 
 import pandas as pd
 
-from pulse_core.screener.base import PickContext, RewardDim, Scorecard
-from pulse_core.screener.risk_dimensions import compute_liquidity_risk
+from pulse_core.screener.contracts import PickContext
+from pulse_core.screener.dimensions.reward import compute_volume_expansion
+from pulse_core.screener.dimensions.risk import compute_liquidity_risk
+from pulse_core.screener.scorecard import RewardDim, Scorecard
 
 LOOKBACK: int = 10
 LIMIT_UP_PCT: float = 9.5
@@ -67,14 +69,6 @@ class LimitUpReplayStrategy:
     ) -> dict[str, RewardDim]:
         strength_score = round(min(100.0, limit_up_days / LOOKBACK * 100.0), 2)
 
-        today_vol = float(ctx.daily.get("vol") or 0.0)
-        vol_ma5 = float(recent["vol"].tail(5).mean()) if "vol" in recent.columns else 0.0
-        if vol_ma5 > 0:
-            ratio = today_vol / vol_ma5
-            volume_score = round(min(100.0, ratio * 50.0), 2)
-        else:
-            volume_score = 0.0
-
         last_limit_up_idx = recent.index[recent["pct_chg"] >= LIMIT_UP_PCT][-1]
         last_limit_up_close = float(recent.loc[last_limit_up_idx, "close"])
         today_close = float(ctx.daily["close"])
@@ -91,11 +85,7 @@ class LimitUpReplayStrategy:
                 "weight":  0.4,
                 "details": {"limit_up_days": limit_up_days, "lookback": LOOKBACK},
             },
-            "volume_expansion": {
-                "score":   volume_score,
-                "weight":  0.3,
-                "details": {"today_vol": today_vol, "vol_ma5": round(vol_ma5, 2)},
-            },
+            "volume_expansion": compute_volume_expansion(ctx, recent, weight=0.3),
             "pullback_quality": {
                 "score":   pullback_score,
                 "weight":  0.3,

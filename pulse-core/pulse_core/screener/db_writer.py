@@ -11,7 +11,7 @@ from datetime import date
 import asyncpg
 
 from pulse_core.lib.logger import logger
-from pulse_core.screener.base import Scorecard
+from pulse_core.screener.scorecard import Scorecard
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,7 +78,7 @@ INSERT INTO daily_picks (
 """
 
 
-def _pick_to_row(p: PickRow, trade_date: date, track: str) -> tuple:
+def _pick_to_row(p: PickRow, trade_date: date, track: str) -> tuple[object, ...]:
     sc = p.scorecard
     return (
         trade_date,

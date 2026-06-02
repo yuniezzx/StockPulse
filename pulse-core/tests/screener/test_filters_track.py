@@ -4,7 +4,7 @@ from datetime import date
 
 import pandas as pd
 
-from pulse_core.screener.base import ScreenerData
+from pulse_core.screener.contracts import ScreenerData
 from pulse_core.screener.filters.track.min_price_filter import MinPriceFilter
 from pulse_core.screener.filters.track.recent_active_filter import RecentActiveFilter
 

@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import math
 
-from pulse_core.screener.base import PickContext, RiskDim
+from pulse_core.screener.contracts import PickContext
+from pulse_core.screener.scorecard import RiskDim
 
 
 def compute_liquidity_risk(ctx: PickContext) -> RiskDim:
@@ -39,11 +40,11 @@ def compute_liquidity_risk(ctx: PickContext) -> RiskDim:
     score = round(rank_pct * 100, 2)
 
     return {
-        "score":   score,
-        "weight":  1.0,
-        "source":  "shared:liquidity_risk",
+        "score": score,
+        "weight": 1.0,
+        "source": "shared:liquidity_risk",
         "details": {
-            "amount":          float(amount),
+            "amount": float(amount),
             "amount_rank_pct": round(rank_pct, 4),
         },
     }

@@ -217,7 +217,7 @@ final_score  = w_reward × reward_score + w_risk × risk_score
 
 | 类型 | source 格式 | 实现位置 | 适用场景 |
 |---|---|---|---|
-| 共享 | `shared:liquidity_risk` | `pulse_core/screener/risk_dimensions.py` | 所有策略都该考虑的标准风险（流动性 / 波动 / 资金面等） |
+| 共享 | `shared:liquidity_risk` | `pulse_core/screener/dimensions/risk.py` | 所有策略都该考虑的标准风险（流动性 / 波动 / 资金面等） |
 | 策略私有 | `strategy:limit_up_replay` | Strategy 类内部方法 | 该策略独有的风险逻辑 |
 
 本期标准共享维度仅 1 个：`liquidity_risk`（基于 `daily_basic_cn.amount` 横截面分位数）。
@@ -299,7 +299,7 @@ class Strategy(Protocol):
 Strategy 在 `score()` 内可自由调用共享 risk 函数 + 自定义私有 risk：
 
 ```python
-from pulse_core.screener.risk_dimensions import compute_liquidity_risk
+from pulse_core.screener.dimensions.risk import compute_liquidity_risk
 
 def score(self, ctx: PickContext) -> Scorecard | None:
     if not self._is_candidate(ctx):
@@ -569,7 +569,7 @@ strategies:
 - [ ] `pulse-core/tests/screener/filters/test_{key}.py` 单元测试
 
 ### 新共享 risk 维度
-- [ ] 在 `pulse_core/screener/risk_dimensions.py` 增加 `compute_{name}_risk(ctx) -> DimensionResult`
+- [ ] 在 `pulse_core/screener/dimensions/risk.py` 增加 `compute_{name}_risk(ctx) -> DimensionResult`
 - [ ] 在本文 §5.4 / §11.3 表格添加条目
 - [ ] 至少 1 个内置 Strategy 引用它（避免孤儿维度）
 

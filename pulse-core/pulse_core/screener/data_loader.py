@@ -14,7 +14,7 @@ import asyncpg
 import pandas as pd
 
 from pulse_core.lib.logger import logger
-from pulse_core.screener.base import ScreenerData
+from pulse_core.screener.contracts import ScreenerData
 
 
 async def load_screener_data(

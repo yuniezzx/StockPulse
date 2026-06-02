@@ -4,7 +4,7 @@ from datetime import date
 
 import pandas as pd
 
-from pulse_core.screener.base import PickContext, ScreenerData
+from pulse_core.screener.contracts import PickContext, ScreenerData
 from pulse_core.screener.strategies.limit_up_replay import (
     LIMIT_UP_PCT,
     LimitUpReplayStrategy,

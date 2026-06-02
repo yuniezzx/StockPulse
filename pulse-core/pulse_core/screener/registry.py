@@ -8,7 +8,7 @@ Phase 3 仅注册 Layer 1 universal filter;Phase 4 加 Layer 2 + strategy。
 
 from __future__ import annotations
 
-from pulse_core.screener.base import Filter, Strategy
+from pulse_core.screener.contracts import Filter, Strategy
 from pulse_core.screener.filters.track.min_price_filter import MinPriceFilter
 from pulse_core.screener.filters.track.recent_active_filter import RecentActiveFilter
 from pulse_core.screener.filters.universal.low_liquidity_filter import LowLiquidityFilter

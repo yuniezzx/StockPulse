@@ -7,7 +7,7 @@ track:       scalp
 description: "超短：打板复盘 + 二次启动，1~3 日持有"
 top_n:       10
 
-# Layer 2 赛道专属 Filter（按 name 引用，实现见 pulse_core/screener/filters/layer2/）
+# Layer 2 赛道专属 Filter（按 name 引用，实现见 pulse_core/screener/filters/track/）
 # Layer 1 通用 Filter 由 Runner 硬编码统一执行，不在此声明
 filters:
   - min_price_filter          # 收盘价 < 3 元剔除

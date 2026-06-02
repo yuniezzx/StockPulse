@@ -9,7 +9,7 @@ Stage 5: 返回 RunResult,由调用方写 job_runs
 
 CLI:
     uv run python -m pulse_core.screener.runner --date 2026-05-21
-    uv run python -m pulse_core.screener.runner            # 默认最近交易日(今日)
+    uv run python -m pulse_core.screener.runner    # 默认最近交易日(今日)
 """
 
 from __future__ import annotations
@@ -19,14 +19,15 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import asyncpg
-import yaml
+import yaml  # pyright: ignore[reportMissingModuleSource]
 
 from pulse_core.lib.db import acquire, close_pool
 from pulse_core.lib.logger import logger
-from pulse_core.screener.base import PickContext, ScreenerData
+from pulse_core.screener.context_builder import _build_context
+from pulse_core.screener.contracts import ScreenerData
 from pulse_core.screener.data_loader import load_screener_data
 from pulse_core.screener.db_writer import PickRow, write_track_picks
 from pulse_core.screener.registry import UNIVERSAL_FILTERS, get_filter, get_strategy
@@ -118,7 +119,7 @@ def _run_layer1(data: ScreenerData) -> set[str]:
     candidates = set(data["universe"])
     for FilterCls in UNIVERSAL_FILTERS:
         f = FilterCls()
-        scoped = ScreenerData(**{**data, "universe": sorted(candidates)})
+        scoped = cast(ScreenerData, cast(object, {**data, "universe": sorted(candidates)}))
         result = f.apply(scoped)
         candidates = result.passed
         logger.info(
@@ -183,7 +184,7 @@ def _run_layer2(
     for name in filter_names:
         FilterCls = get_filter(name)
         f = FilterCls()
-        scoped = ScreenerData(**{**data, "universe": sorted(candidates)})
+        scoped = cast(ScreenerData, cast(object, {**data, "universe": sorted(candidates)}))
         result = f.apply(scoped)
         candidates = result.passed
         logger.info(
@@ -213,46 +214,19 @@ def _run_strategies(
     return picks
 
 
-def _build_context(ts_code: str, data: ScreenerData) -> PickContext:
-    """从 ScreenerData 切片出单股 PickContext。"""
-    history = data["history"]
-    if ts_code in history.index.get_level_values("ts_code"):
-        stock_history = history.xs(ts_code, level="ts_code")
-    else:
-        import pandas as pd
-        stock_history = pd.DataFrame()
-
-    return PickContext(
-        ts_code=ts_code,
-        trade_date=data["trade_date"],
-        daily=data["daily"].loc[ts_code],
-        basic=data["basic"].loc[ts_code] if ts_code in data["basic"].index else None,  # type: ignore[arg-type]
-        moneyflow=data["moneyflow"].loc[ts_code] if ts_code in data["moneyflow"].index else None,
-        trend=data["trend"].loc[ts_code] if ts_code in data["trend"].index else None,  # type: ignore[arg-type]
-        momentum=data["momentum"].loc[ts_code] if ts_code in data["momentum"].index else None,  # type: ignore[arg-type]
-        volume=data["volume"].loc[ts_code] if ts_code in data["volume"].index else None,  # type: ignore[arg-type]
-        moneyflow_ind=(
-            data["moneyflow_ind"].loc[ts_code]
-            if ts_code in data["moneyflow_ind"].index else None
-        ),
-        history=stock_history,
-        data=data,
-    )
-
-
 def _parse_cli() -> argparse.Namespace:
     p = argparse.ArgumentParser(prog="pulse_core.screener.runner")
     p.add_argument(
         "--date",
         type=lambda s: datetime.strptime(s, "%Y-%m-%d").date(),
         default=date.today(),
-        help="交易日 YYYY-MM-DD,默认今天",
+        help="Trading date in YYYY-MM-DD; default today",
     )
     p.add_argument(
         "--tracks",
         nargs="*",
         default=None,
-        help="指定赛道(空=全跑)",
+        help="Track names; empty means all",
     )
     return p.parse_args()
 

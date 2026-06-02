@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from pulse_core.screener.base import RewardDim, RiskDim, Scorecard
+from pulse_core.screener.scorecard import RewardDim, RiskDim, Scorecard
 
 
 def _valid_scorecard() -> Scorecard:

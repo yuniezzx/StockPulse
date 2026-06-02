@@ -9,9 +9,11 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import pandas as pd
 
-from pulse_core.screener.base import FilterResult, ScreenerData
+from pulse_core.screener.contracts import FilterResult, ScreenerData
 
 
 class LowLiquidityFilter:
@@ -25,7 +27,7 @@ class LowLiquidityFilter:
         history = data["history"]
         universe = data["universe"]
         passed: set[str] = set()
-        rejected: dict[str, dict] = {}
+        rejected: dict[str, dict[str, object]] = {}
 
         if "amount" not in history.columns:
             raise ValueError(
@@ -34,7 +36,7 @@ class LowLiquidityFilter:
             )
 
         recent = history.groupby(level="ts_code", sort=False).tail(self.lookback)
-        amount_avg = recent.groupby(level="ts_code")["amount"].mean()
+        amount_avg = cast(pd.Series, recent.groupby(level="ts_code")["amount"].mean())
 
         for ts_code in universe:
             avg = amount_avg.get(ts_code)

@@ -1,20 +1,22 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Any, cast
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
-from pulse_core.screener.base import PickContext, Scorecard, ScreenerData
+from pulse_core.screener.context_builder import _build_context
+from pulse_core.screener.contracts import PickContext, ScreenerData
 from pulse_core.screener.runner import (
     RunResult,
     TrackResult,
-    _build_context,
     _run_layer1,
     _run_layer2,
     _run_strategies,
 )
+from pulse_core.screener.scorecard import Scorecard
 
 
 def _make_screener_data(trade_date: date = date(2026, 5, 21)) -> ScreenerData:
@@ -134,6 +136,7 @@ class TestBuildContext:
         assert isinstance(ctx, PickContext)
         assert ctx.ts_code == "000001.SZ"
         assert ctx.daily["close"] == 10.5
+        assert ctx.basic is not None
         assert ctx.basic["amount"] == 1_000_000.0
 
 
@@ -188,7 +191,7 @@ class TestRunTrackErrorIsolation:
         data = _make_screener_data()
         with patch("pulse_core.screener.runner.write_track_picks") as mock_write:
             result = await _run_track(
-                conn=None,  # type: ignore[arg-type]
+                conn=cast(Any, None),
                 track_file=bad_yaml,
                 data=data,
                 layer1_passed={"000001.SZ"},

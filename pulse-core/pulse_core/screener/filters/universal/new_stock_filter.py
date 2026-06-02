@@ -10,7 +10,7 @@ from datetime import timedelta
 
 import pandas as pd
 
-from pulse_core.screener.base import FilterResult, ScreenerData
+from pulse_core.screener.contracts import FilterResult, ScreenerData
 
 
 class NewStockFilter:
@@ -26,7 +26,7 @@ class NewStockFilter:
         trade_date = data["trade_date"]
         cutoff = pd.Timestamp(trade_date) - timedelta(days=self.min_list_days)
         passed: set[str] = set()
-        rejected: dict[str, dict] = {}
+        rejected: dict[str, dict[str, object]] = {}
 
         for ts_code in universe:
             if ts_code not in stocks.index:

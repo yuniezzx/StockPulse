@@ -13,8 +13,8 @@ from datetime import date
 import pandas as pd
 import pytest
 
-from pulse_core.screener.base import PickContext, ScreenerData
-from pulse_core.screener.risk_dimensions import compute_liquidity_risk
+from pulse_core.screener.contracts import PickContext, ScreenerData
+from pulse_core.screener.dimensions.risk import compute_liquidity_risk
 
 
 def _make_daily() -> pd.DataFrame:
@@ -58,6 +58,7 @@ class TestLiquidityRisk:
         data = _make_data(daily)
         result = compute_liquidity_risk(_make_ctx("E.SZ", daily, data))
         assert result["score"] == 100.0
+        assert "details" in result
         assert result["details"]["amount"] == 500000.0
         assert result["details"]["amount_rank_pct"] == 1.0
 
@@ -66,6 +67,7 @@ class TestLiquidityRisk:
         data = _make_data(daily)
         result = compute_liquidity_risk(_make_ctx("A.SZ", daily, data))
         assert result["score"] == 20.0
+        assert "details" in result
         assert result["details"]["amount_rank_pct"] == 0.2
 
     def test_middle_rank(self) -> None:

@@ -7,13 +7,13 @@ from datetime import date
 import pandas as pd
 import pytest
 
-from pulse_core.screener.base import ScreenerData
+from pulse_core.screener.contracts import ScreenerData
 from pulse_core.screener.filters.universal.low_liquidity_filter import LowLiquidityFilter
 from pulse_core.screener.filters.universal.new_stock_filter import NewStockFilter
 from pulse_core.screener.filters.universal.st_filter import STFilter
 
 
-def _make_stocks(rows: list[dict]) -> pd.DataFrame:
+def _make_stocks(rows: list[dict[str, object]]) -> pd.DataFrame:
     return pd.DataFrame(rows).set_index("ts_code")
 
 
@@ -87,7 +87,7 @@ class TestNewStockFilter:
 
 
 class TestLowLiquidityFilter:
-    def _make_history(self, rows: list[dict]) -> pd.DataFrame:
+    def _make_history(self, rows: list[dict[str, object]]) -> pd.DataFrame:
         return pd.DataFrame(rows).set_index(["ts_code", "trade_date"])
 
     def test_filter_low_liquidity(self) -> None:

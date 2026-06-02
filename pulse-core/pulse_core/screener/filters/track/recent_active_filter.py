@@ -9,9 +9,11 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import pandas as pd
 
-from pulse_core.screener.base import FilterResult, ScreenerData
+from pulse_core.screener.contracts import FilterResult, ScreenerData
 
 
 class RecentActiveFilter:
@@ -25,7 +27,7 @@ class RecentActiveFilter:
         history = data["history"]
         universe = data["universe"]
         passed: set[str] = set()
-        rejected: dict[str, dict] = {}
+        rejected: dict[str, dict[str, object]] = {}
 
         if "amount" not in history.columns:
             raise ValueError(
@@ -34,7 +36,7 @@ class RecentActiveFilter:
             )
 
         recent = history.groupby(level="ts_code", sort=False).tail(self.lookback)
-        max_amount = recent.groupby(level="ts_code")["amount"].max()
+        max_amount = cast(pd.Series, recent.groupby(level="ts_code")["amount"].max())
 
         for ts_code in universe:
             peak = max_amount.get(ts_code)

@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from pulse_core.screener.base import FilterResult, ScreenerData
+from pulse_core.screener.contracts import FilterResult, ScreenerData
 
 _REJECT_KEYWORDS: tuple[str, ...] = ("ST", "退", "PT")
 
@@ -20,7 +20,7 @@ class STFilter:
         stocks = data["stocks"]
         universe = data["universe"]
         passed: set[str] = set()
-        rejected: dict[str, dict] = {}
+        rejected: dict[str, dict[str, object]] = {}
 
         for ts_code in universe:
             if ts_code not in stocks.index:
