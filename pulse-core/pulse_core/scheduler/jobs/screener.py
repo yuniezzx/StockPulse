@@ -76,7 +76,9 @@ async def screener_runner_handler(run: JobRun) -> JobResult:
     logger.info(f"[run_id={run.id}] starting screener_runner for trade_date={trade_date}")
     # run_screener 内部已经做了 per-track 异常隔离 + Stage 0/1 失败上抛。
     # 这里不再 try/except 业务异常：worker 会兜底为 failed。
-    result = await run_screener(trade_date)
+    # 传 run_id ⇒ run_screener 在所有 per-track 事务提交后,把成功赛道的 top picks
+    # 以独立事务写入 notifications_outbox(scheduled_at = 次日 07:00,早报由 pulse-api 发送)。
+    result = await run_screener(trade_date, run_id=run.id)
 
     details = result.to_details()
     rows = result.total_rows

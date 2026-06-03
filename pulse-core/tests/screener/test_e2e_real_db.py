@@ -31,7 +31,10 @@ pytestmark = pytest.mark.skipif(
 @pytest.mark.asyncio
 async def test_scalp_track_e2e_real_db():
     from pulse_core.lib.db import acquire, close_pool
+    from pulse_core.outbox.events import EVENT_SCREENER_PICKS
     from pulse_core.screener.runner import run_screener
+
+    fake_run_id = 999_999
 
     try:
         async with acquire() as conn:
@@ -41,7 +44,7 @@ async def test_scalp_track_e2e_real_db():
             assert row and row["d"], "daily_cn 无数据,先跑 ingestion"
             trade_date: date = row["d"]
 
-        result = await run_screener(trade_date, tracks=["scalp"])
+        result = await run_screener(trade_date, tracks=["scalp"], run_id=fake_run_id)
 
         assert result.status in ("success", "partial"), (
             f"Runner 失败:{result.to_details()}"
@@ -78,6 +81,25 @@ async def test_scalp_track_e2e_real_db():
                 f"rank 应连续:max={max_rank} vs count={cand_count}"
             )
 
+            outbox_row = await conn.fetchrow(
+                "SELECT event_type, payload, scheduled_at, status "
+                "FROM notifications_outbox "
+                "WHERE event_type = $1 AND payload->>'run_id' = $2 "
+                "ORDER BY id DESC LIMIT 1",
+                EVENT_SCREENER_PICKS, str(fake_run_id),
+            )
+            assert outbox_row is not None, (
+                f"outbox 应有 run_id={fake_run_id} 的 screener_picks 行"
+            )
+            assert outbox_row["status"] == "pending"
+            assert outbox_row["payload"]["trade_date"] == trade_date.isoformat()
+            tracks_in_payload = outbox_row["payload"]["tracks"]
+            assert any(t["track"] == "scalp" for t in tracks_in_payload)
+
+            await conn.execute(
+                "DELETE FROM notifications_outbox WHERE payload->>'run_id' = $1",
+                str(fake_run_id),
+            )
             await conn.execute(
                 "DELETE FROM daily_picks WHERE trade_date = $1 AND track = 'scalp'",
                 trade_date,

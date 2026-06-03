@@ -26,6 +26,11 @@ import yaml  # pyright: ignore[reportMissingModuleSource]
 
 from pulse_core.lib.db import acquire, close_pool
 from pulse_core.lib.logger import logger
+from pulse_core.outbox.writer import (
+    PickPayloadItem,
+    TrackPayload,
+    enqueue_screener_picks,
+)
 from pulse_core.screener.context_builder import _build_context
 from pulse_core.screener.contracts import ScreenerData
 from pulse_core.screener.data_loader import load_screener_data
@@ -37,10 +42,12 @@ TRACKS_DIR = Path(__file__).parent / "tracks"
 
 @dataclass
 class TrackResult:
-    track:    str
-    status:   str    # "success" | "failed"
-    inserted: int = 0
-    error:    str | None = None
+    track:     str
+    status:    str    # "success" | "failed"
+    inserted:  int = 0
+    error:     str | None = None
+    # 仅 success 时填充;outbox 早报聚合用(只取 top_n,与 daily_picks 对齐)。
+    top_picks: list[PickRow] = field(default_factory=list)
 
 
 @dataclass
@@ -80,12 +87,15 @@ async def run_screener(
     trade_date: date,
     *,
     tracks: list[str] | None = None,
+    run_id: int | None = None,
 ) -> RunResult:
     """跑完整的 5 阶段流水线。
 
     Args:
         trade_date: 目标交易日。
         tracks: 指定跑的赛道列表;None = 跑 tracks/ 目录下全部 yaml。
+        run_id: scheduler_runs.id;handler 路径必传,CLI 路径为 None
+            (None ⇒ 跳过 outbox enqueue,避免本地试跑发出"假早报")。
 
     Returns:
         RunResult,含整体状态 + 每赛道明细。
@@ -105,7 +115,59 @@ async def run_screener(
             result.track_results.append(tr)
             result.total_rows += tr.inserted
 
-        return result
+    # Plan A: outbox 在所有 per-track 事务提交后,以独立顶层事务写入。
+    # 失败损耗 = 早报缺失,不回滚 picks(用户裁定优先保 picks)。
+    if run_id is not None:
+        await _enqueue_outbox(trade_date, run_id, result.track_results)
+
+    return result
+
+
+async def _enqueue_outbox(
+    trade_date: date,
+    run_id: int,
+    track_results: list[TrackResult],
+) -> None:
+    successful = [tr for tr in track_results if tr.status == "success" and tr.top_picks]
+    if not successful:
+        logger.info(
+            f"[run_id={run_id}] 无成功赛道或 top_picks 为空,跳过 outbox enqueue"
+        )
+        return
+
+    payloads = [
+        TrackPayload(
+            track=tr.track,
+            picks=[
+                PickPayloadItem(
+                    ts_code=p.ts_code,
+                    strategy=p.strategy,
+                    final_score=p.scorecard.axis_scores["final"],
+                    rank=p.rank if p.rank is not None else 0,
+                )
+                for p in tr.top_picks
+            ],
+        )
+        for tr in successful
+    ]
+    try:
+        async with acquire() as conn:
+            async with conn.transaction():
+                outbox_id = await enqueue_screener_picks(
+                    conn,
+                    trade_date=trade_date,
+                    run_id=run_id,
+                    tracks=payloads,
+                )
+        logger.info(
+            f"[run_id={run_id}] outbox enqueued: id={outbox_id} "
+            f"tracks={len(payloads)}"
+        )
+    except Exception as e:
+        logger.error(
+            f"[run_id={run_id}] outbox enqueue FAILED (picks 已落库,仅丢失早报): {e}",
+            exc_info=True,
+        )
 
 
 def _discover_track_files(tracks: list[str] | None) -> list[Path]:
@@ -168,7 +230,12 @@ async def _run_track(
         result = await write_track_picks(
             conn, data["trade_date"], track_name, top_picks, all_with_rank,
         )
-        return TrackResult(track=track_name, status="success", inserted=result.picks_inserted)
+        return TrackResult(
+            track=track_name,
+            status="success",
+            inserted=result.picks_inserted,
+            top_picks=top_picks,
+        )
 
     except Exception as e:
         logger.error(f"Track {track_name} FAILED: {e}", exc_info=True)
