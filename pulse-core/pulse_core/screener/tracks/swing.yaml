@@ -9,8 +9,8 @@ track:       swing
 description: "波段：中线上行趋势中的缩量回踩，5~20 日持有"
 top_n:       20
 
-filters:
-  - ma20_upward_filter        # TODO: 20 日均线向上
+filters: []
+# TODO: ma20_upward_filter — 20 日均线向上
 
-strategies:
-  - volume_shrink_rebound     # TODO: 缩量回踩反弹策略
+strategies: []
+# TODO: volume_shrink_rebound — 缩量回踩反弹策略

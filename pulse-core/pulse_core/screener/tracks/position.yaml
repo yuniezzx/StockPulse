@@ -9,8 +9,8 @@ track:       position
 description: "中线：基本面 + 趋势共振，月度持有"
 top_n:       15
 
-filters:
-  - fundamental_base_filter   # TODO: PE / PB / ROE 基本面门槛
+filters: []
+# TODO: fundamental_base_filter — PE / PB / ROE 基本面门槛
 
-strategies:
-  - trend_breakout            # TODO: 长周期趋势突破策略
+strategies: []
+# TODO: trend_breakout — 长周期趋势突破策略
