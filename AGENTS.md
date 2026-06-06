@@ -8,7 +8,7 @@
 ## 0. 一句话
 
 A 股短中线**个人**选股系统：Tushare → 多策略漏斗 → 早报推送 → 持仓追踪 → 策略校验 → 权重调整。
-**目标：分析、选股、买卖、追踪、校验、调权。不是回测。**
+**目标：分析、选股、买卖、追踪、校验、调权。**
 
 ## 0.1 三服务
 
@@ -32,15 +32,15 @@ pulse-web/    TypeScript · pnpm · 前端展示（零业务计算）
 
 ---
 
-## 2. 边界铁律（红线）
+## 2. 服务边界与指导原则
 
 ```
-① pulse-core 写圈 1/2/3 自动数据；pulse-api 写圈 4 用户数据
-② pulse-api 不做重业务计算；pulse-web 零业务计算
+① pulse-core 负责写圈 1/2/3 自动数据；pulse-api 负责写圈 4 用户数据
+② pulse-api 建议不做重业务计算；pulse-web 建议零业务计算
 ③ pulse-core 不开 HTTP 给 pulse-web（前端只通过 pulse-api）
-④ 用户主动触发计算 → 提前算好走 DB（不用 Redis）
-⑤ 选股 + 虚拟仓 + outbox 必须同事务原子写入
-⑥ 通知用 outbox：pulse-core 写表，pulse-api 在 07:00 聚合发送
+④ 建议用户主动触发的计算优先提前算好走 DB（当前不默认引入 Redis）
+⑤ 选股 + 虚拟仓 + outbox 建议优先同事务原子写入
+⑥ 通知优先采用 outbox 模式：pulse-core 写表，pulse-api 聚合发送
 ```
 
 详细规则 → [`docs/architecture.md`](docs/architecture.md) §3.2 / §4.4。

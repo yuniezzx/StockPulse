@@ -1,6 +1,6 @@
 # StockPulse 数据库设计约定
 
-> **本文是 StockPulse DB 设计的唯一来源。**
+> **本文提供 StockPulse DB 设计的主要指导原则。**
 > 命名规则（表名 / 列名 / 索引命名）→ [`naming-conventions.md`](naming-conventions.md)；
 > 架构总览（服务边界 / 数据流向图）→ [`architecture.md`](architecture.md)。
 
@@ -8,11 +8,11 @@
 
 ## 1. 设计原则
 
-- 单一存储：PostgreSQL 是唯一持久层，不引 Redis / 消息队列
-- 圈层不可逆：数据单向从圈 1 流向圈 4，低圈层不写高圈层
-- 结构优先：能建列就建列，JSONB 仅作逃生舱
-- 软删除克制：能硬删就硬删，软删除仅用于需要历史的少数业务表
-- 可观测：所有定时 / 手动任务运行结果写入 `job_runs`
+- 单一存储建议：PostgreSQL 作为主要持久层，当前不默认引入 Redis / 消息队列
+- 建议圈层不可逆：数据主要从圈 1 流向圈 4，低圈层通常不写高圈层
+- 结构优先建议：能建列就建列，JSONB 建议仅作逃生舱
+- 建议软删除克制：能硬删就硬删，软删除主要用于需要历史的业务表
+- 可观测建议：所有定时 / 手动任务运行结果优先写入 `job_runs`
 
 ---
 
@@ -49,9 +49,9 @@
 
 ## 3. JSONB 使用边界
 
-**原则**：JSONB 是"逃生舱"，不是默认存储。**结构化的、要查询的、要校验的字段必须升列**。
+**原则**：JSONB 建议作为"逃生舱"，不作为默认存储。**结构化的、要查询的、要校验的字段建议优先升列**。
 
-### 3.1 何时用 JSONB（✅）
+### 3.1 建议用 JSONB 的场景（✅）
 
 - **策略 signals 详情**：每个策略输出的中间值（如 MACD 的 `dif/dea/hist`），结构因策略而异
 - **校验报告快照**：`evaluations.report`（每次校验跑完一份完整快照，结构会演进）
@@ -59,7 +59,7 @@
 - **用户偏好**：`preferences.config`（个性化字段集合）
 - **风控触发上下文**：`risk_signals.context`（触发时的快照数据）
 
-### 3.2 何时禁止 JSONB（❌）
+### 3.2 不建议使用 JSONB 的场景（❌）
 
 - 任何需要 `WHERE` / `ORDER BY` / `JOIN` 的字段
 - 任何有固定枚举值的字段（如 `strategy` / `track` / `status`）
@@ -86,9 +86,9 @@ interface PickDetail {
 
 ## 4. 软删除规则
 
-**原则**：能硬删就硬删。仅以下场景启用软删除。
+**原则**：建议能硬删就硬删。通常仅以下场景启用软删除。
 
-### 4.1 何时软删除（`deleted_at TIMESTAMPTZ`）
+### 4.1 建议软删除的场景（`deleted_at TIMESTAMPTZ`）
 
 - 用户真实持仓：清仓后保留历史（`real_positions.deleted_at`）
 - 虚拟持仓：退出后归档（`virtual_positions.deleted_at`）
@@ -100,9 +100,9 @@ interface PickDetail {
 - 配套查询视图：`v_{表}_active`（自动过滤 `WHERE deleted_at IS NULL`）
 - 所有 SELECT **默认** 加 `WHERE deleted_at IS NULL`，需要全量时显式写 `INCLUDE deleted`
 
-### 4.3 自动数据不软删
+### 4.3 自动数据建议不软删
 
-圈 1/2/3 的自动数据（`daily_cn` / `daily_picks` / `risk_signals` 等）**禁止**软删除：
+圈 1/2/3 的自动数据（`daily_cn` / `daily_picks` / `risk_signals` 等）通常建议不使用软删除：
 - 重跑覆盖（`ON CONFLICT DO UPDATE`）或硬删重写
 - 历史数据用归档表（`{表}_archive`），不用 `deleted_at`
 

@@ -1,6 +1,6 @@
 # StockPulse 任务调度
 
-> **本文是 StockPulse 调度机制的唯一来源。**
+> **本文提供 StockPulse 调度机制的主要指导。**
 > 总体服务边界见 [`architecture.md`](architecture.md) §3；本文内容源自 §7.2–§7.3。
 
 ---
@@ -18,7 +18,7 @@
 
 ## 2. 选型理由
 
-任务量少（每日 5–10 个 job），依赖关系简单（串行为主），OS 级调度方案需多平台配置，不可接受。
+任务量少（每日 5–10 个 job），依赖关系简单（串行为主），当前优先选择跨平台方案。
 
 | 备选 | 否决理由 |
 |---|---|
@@ -62,7 +62,7 @@ job_runs(status='done' / 'failed')
 
 | 文件 | 职责 |
 |---|---|
-| `scheduler/daemon.py` | 常驻进程入口；`asyncio.run()` 同时跑 scheduler + worker；收到 SIGTERM/SIGINT 后等当前 handler 自然结束再退出（`stop_grace_period: 600s`）；**不开 HTTP**（架构红线 §3.2 ④） |
+| `scheduler/daemon.py` | 常驻进程入口；`asyncio.run()` 同时跑 scheduler + worker；收到 SIGTERM/SIGINT 后等当前 handler 自然结束再退出（`stop_grace_period: 600s`）；**默认不开启 HTTP**（保持计算层纯净） |
 | `scheduler/cron.py` | APScheduler 定义；使用 `AsyncIOScheduler`（非 `BlockingScheduler`，与 worker 同 event loop）；触发器只调 `enqueue_cron(job_name, now)`，不执行业务逻辑；幂等：`(job_name, scheduled_at) WHERE trigger_source='cron'` partial unique index 防止 misfire 重复入队 |
 | `scheduler/worker.py` | 执行循环；`SELECT ... FOR UPDATE SKIP LOCKED` + 1 秒轮询；并发 = 1（Tushare 限流，串行）；handler 异常兜底为 `status='failed'`，不让 worker 崩溃 |
 | `scheduler/registry.py` | job_name → handler 映射注册表 |

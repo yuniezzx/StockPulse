@@ -1,7 +1,7 @@
 # StockPulse Architecture
 
 > **目标读者：AI 助手 / 未来的自己**
-> 本文是 StockPulse 架构决策的**唯一来源**。
+> 本文是 StockPulse 架构决策的主要指导原则。
 > 命名规则 → [`naming-conventions.md`](./naming-conventions.md) ｜ AI 工作守则 → [`../AGENTS.md`](../AGENTS.md)
 
 ---
@@ -65,19 +65,19 @@ A 股短中线**个人**选股决策系统：每天傍晚同步数据 → 多策
 |---|---|---|---|
 | `pulse-core` | Python (uv) | 计算引擎：同步数据 + 跑策略 + 算指标 + 写自动业务数据 | 数据圈 1/2/3 |
 | `pulse-api` | TypeScript (Fastify, pnpm) | API 网关 + 用户数据写入 + 通知发送 | 数据圈 4 |
-| `pulse-web` | TypeScript (React+Vite, pnpm) | 前端展示 + 用户交互 | 无（零业务计算） |
+| `pulse-web` | TypeScript (React+Vite, pnpm) | 前端展示 + 用户交互 | 无（建议零业务计算） |
 
-### 3.2 9 条服务边界规则
+### 3.2 9 条服务边界指导原则
 ```
 ① pulse-core 写自动数据，pulse-api 写用户数据，互不重叠
-② pulse-api 不做重业务计算（薄路由 + 编排）
-③ pulse-web 零业务计算(取数 + 展示)
+② pulse-api 建议不做重业务计算（保持薄路由 + 编排）
+③ pulse-web 建议零业务计算(主要负责取数 + 展示)
 ④ pulse-core 不开 HTTP 给 pulse-web（前端只通过 pulse-api）
-⑤ 用户主动触发的计算 → 提前算好走 DB（不引入 Redis）
-⑥ 虚拟持仓由 pulse-core 在选股事务内创建（同事务原子写入）
-⑦ 通知用 outbox 模式（pulse-core 写表，pulse-api 发）
-⑧ 通知通道：企业微信群机器人(P0) + 邮件(P1) + Telegram(P2 留口子)
-⑨ `job_runs` 表写权限例外：pulse-api 可 INSERT `status='pending'` 的行（用户手动触发入口），UPDATE 仍归 pulse-core worker
+⑤ 建议用户主动触发的计算优先提前算好走 DB（当前不默认引入 Redis）
+⑥ 虚拟持仓建议由 pulse-core 在选股事务内创建（推荐同事务原子写入）
+⑦ 通知优先采用 outbox 模式（pulse-core 写表，pulse-api 发）
+⑧ 建议通知通道：企业微信群机器人(P0) + 邮件(P1) + Telegram(P2 留口子)
+⑨ `job_runs` 表写权限：pulse-api 可 INSERT `status='pending'` 的行（用户手动触发入口），UPDATE 通常归 pulse-core worker
 ```
 
 ### 3.3 为什么这样切
@@ -86,8 +86,8 @@ A 股短中线**个人**选股决策系统：每天傍晚同步数据 → 多策
 | Python 跑计算 | pandas-ta / 数据处理生态强 |
 | TS 跑 API | 与前端共享类型、Fastify 性能足够 |
 | 计算与 API 分进程 | 计算可独立调度，API 可独立重启 |
-| 前端零计算 | 单一职责，避免业务逻辑散落 |
-| 不引入 Redis | 单人项目，DB 预计算 + PG buffer 已足够 |
+| 前端建议零计算 | 单一职责，避免业务逻辑散落 |
+| 当前不默认引入 Redis | 单人项目，DB 预计算 + PG buffer 已足够 |
 
 ---
 
@@ -111,17 +111,17 @@ Tushare
               pulse-api ──→ pulse-web
 ```
 
-### 4.2 9 条数据流规则
+### 4.2 9 条数据流指导原则
 ```
-① 数据单向流动（圈层不可逆向写）
-② 4 个圈层职责清晰、互不污染
-③ pulse-core 写圈 1/2/3，pulse-api 写圈 4
-④ 关键事务：选股 + 虚拟仓 + outbox 同事务原子写入
-⑤ 通知节奏：早报聚合（scheduled_at = 次日 07:00）；运维告警（job 失败等）立即（scheduled_at = NOW()）
-⑥ 通知聚合：pulse-api 发送时合并多事件为一条早报
-⑦ ⑥ 权重模式：半自动（系统建议 + 用户审核确认）
-⑧ 风控延迟：次日早晨级（不做盘中分钟级）
-⑨ 任务可观测：所有定时/手动任务运行记录写入 `job_runs`（scheduler 写 pending，worker 跑并更新状态）
+① 建议数据单向流动（通常圈层不可逆向写）
+② 4 个圈层保持职责清晰、互不污染
+③ pulse-core 负责写圈 1/2/3，pulse-api 负责写圈 4
+④ 关键事务建议：选股 + 虚拟仓 + outbox 优先采用同事务原子写入
+⑤ 通知节奏建议：早报聚合（scheduled_at = 次日 07:00）；运维告警（job 失败等）可立即发送（scheduled_at = NOW()）
+⑥ 通知聚合建议：pulse-api 发送时合并多事件为一条早报
+⑦ ⑥ 权重模式：建议半自动（系统建议 + 用户审核确认）
+⑧ 风控建议延迟：次日早晨级（默认不做盘中分钟级，可按需调整）
+⑨ 任务建议可观测：所有定时/手动任务运行记录优先写入 `job_runs`（scheduler 写 pending，worker 跑并更新状态）
 ```
 
 ---
@@ -235,14 +235,14 @@ StockPulse/
 
 任务调度细节详见 [`scheduling.md`](scheduling.md)。
 
-### 7.1 为什么不用 Redis
+### 7.1 为什么当前不引入 Redis
 | 场景 | 替代方案 |
 |---|---|
 | 跨服务通信 | PG（outbox + 状态字段） |
 | 缓存热数据 | PG shared_buffers（2GB 配置） |
 | 异步队列 | PG outbox + APScheduler 扫描 |
 
-**理由**：单人项目，64GB 内存还要给其他服务用，Redis 引入额外运维成本不值得。
+**理由**：单人项目，当前 DB 预计算 + PG buffer 已足够，不建议引入额外运维成本。
 
 ### 7.2 硬件预算
 ```

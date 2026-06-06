@@ -152,8 +152,8 @@ class Strategy(Protocol):
 ### 7.2 不入选语义
 返回 `None` 意味着该股票甚至不应出现在候选列表的末尾。Strategy 拥有最终否决权。
 
-### 7.3 风险维度强制规则
-Scorecard 必须包含至少 1 个 `kind="risk"` 的维度。Runner 在 Strategy 产出后立即调用 `Scorecard.validate()` 校验：缺失 risk 维度或 weight 总和 ≠ 1.0（容差 1e-6）即抛 `ValueError`，整个赛道执行失败（不容错、不过滤）。
+### 7.3 风险维度指导建议
+Scorecard 建议包含至少 1 个 `kind="risk"` 的维度。Runner 在 Strategy 产出后建议调用 `Scorecard.validate()` 校验：若缺失 risk 维度或 weight 总和 ≠ 1.0（容差 1e-6）建议记录警告或抛出异常。
 
 ## 8. Filter 契约（Protocol）
 
@@ -217,12 +217,12 @@ def screener_main(trade_date):
         db.save_picks_atomic(final_picks, track)  # 同事务写入 daily_picks 及衍生表
 ```
 
-## 10. 红线（禁止）
-- ❌ Strategy 返回 Scorecard 但不含 `kind="risk"` 的维度
-- ❌ Scorecard weight 总和不等于 1.0（容差 1e-6）
-- ❌ 绕过 `screener/runner.py` 直写 `daily_picks`（破坏 architecture.md §5.3 同事务原子性）
-- ❌ Filter 在结果为空时崩溃（必须空 DataFrame 优雅传递到下游）
-- ❌ `scorecard.dimensions` / `signals` 的 JSONB 内部使用 `camelCase`（DB / Python 层必须 `snake_case`）
+## 10. 指导原则与建议
+- 建议 Strategy 返回的 Scorecard 包含 `kind="risk"` 的维度
+- 建议 Scorecard weight 总和等于 1.0（容差 1e-6）
+- 建议优先通过 `screener/runner.py` 写入 `daily_picks` 以保证原子性
+- 建议 Filter 在结果为空时优雅处理，不应崩溃
+- **硬约束**：`scorecard.dimensions` / `signals` 的 JSONB 内部必须使用 `snake_case`（遵循命名规范）
 
 ## 11. 新增 checklist
 

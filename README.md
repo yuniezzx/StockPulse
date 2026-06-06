@@ -101,11 +101,11 @@ pnpm web:dev
 | 计算 | Python + pandas-ta | 数据生态强 |
 | API | TypeScript + Fastify | 与前端共享类型 |
 | 前端 | React + Vite + shadcn/ui | 现代、轻量 |
-| DB | PostgreSQL | 单一存储（不引 Redis） |
+| DB | PostgreSQL | 单一存储（当前不默认引入 Redis） |
 | 调度 | APScheduler + 自建 worker | 跨平台、进程内、`job_runs` 表持久化运行流水 |
 | 通知 | 企业微信群机器人 + 邮件 + Telegram | 多通道 |
 
-不引入：Redis / Airflow / Prefect / 消息队列 — 单人项目过度工程。
+当前不默认引入：Redis / Airflow / Prefect / 消息队列 — 单人项目建议轻量起步。
 详细理由 → [`docs/architecture.md`](docs/architecture.md) §7。
 
 ---
