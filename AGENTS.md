@@ -1,6 +1,6 @@
 # AGENTS.md — StockPulse AI 工作守则
 
-> **精简版**。架构 → [`docs/architecture.md`](docs/architecture.md) ｜ DB → [`docs/database.md`](docs/database.md) ｜ 调度 → [`docs/scheduling.md`](docs/scheduling.md) ｜ 指标 → [`docs/indicators.md`](docs/indicators.md) ｜ 命名 → [`docs/naming-conventions.md`](docs/naming-conventions.md) ｜ 选股 → [`docs/screener.md`](docs/screener.md)
+> **精简版**。架构 → [`docs/architecture.md`](docs/architecture.md) ｜ DB → [`docs/database.md`](docs/database.md) ｜ 调度 → [`docs/scheduling.md`](docs/scheduling.md) ｜ 指标 → [`docs/indicators.md`](docs/indicators.md) ｜ 命名 → [`docs/naming-conventions.md`](docs/naming-conventions.md)
 > **冲突解决顺序**：README < AGENTS < architecture < screener < database < scheduling < indicators < naming-conventions < 用户当次明确指示
 
 ---

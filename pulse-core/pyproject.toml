@@ -5,6 +5,7 @@ description = "StockPulse compute engine: data ingestion, indicators, screening,
 requires-python = ">=3.12"
 dependencies = [
     "apscheduler>=3.10,<4.0",
+    "pydantic>=2.7",
     "pydantic-settings>=2.6.0",
     "loguru>=0.7.2",
     "asyncpg>=0.30.0",
@@ -14,11 +15,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
-    "ruff>=0.15.0",
-    "pytest>=8.3.0",
-    "pytest-asyncio>=0.24.0",
-]
+dev = ["ruff>=0.15.0", "pytest>=8.3.0", "pytest-asyncio>=0.24.0"]
 
 [tool.uv]
 # pulse-core is an application, not a publishable library.
