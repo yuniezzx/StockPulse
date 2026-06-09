@@ -38,9 +38,6 @@ pulse-web/    TypeScript · pnpm · 前端展示（零业务计算）
 ① pulse-core 负责写圈 1/2/3 自动数据；pulse-api 负责写圈 4 用户数据
 ② pulse-api 建议不做重业务计算；pulse-web 建议零业务计算
 ③ pulse-core 不开 HTTP 给 pulse-web（前端只通过 pulse-api）
-④ 建议用户主动触发的计算优先提前算好走 DB（当前不默认引入 Redis）
-⑤ 选股 + 虚拟仓 + outbox 建议优先同事务原子写入
-⑥ 通知优先采用 outbox 模式：pulse-core 写表，pulse-api 聚合发送
 ```
 
 详细规则 → [`docs/architecture.md`](docs/architecture.md) §3.2 / §4.4。
@@ -99,15 +96,6 @@ pulse-web/src/
 - [ ] `pulse-web/src/lib/indicator-doc-nav.ts` 注册新 `anchor`，与 mdx 文件名一致
 - [ ] `pnpm check:anchors` / `pnpm typecheck` 通过
 
-### 新选股策略
-- [ ] `pulse-core/pulse_core/screener/strategies/{strategy_key}.py`
-- [ ] 类名 `{StrategyKeyPascalCase}Strategy`，`name = "{strategy_key}"`
-- [ ] 在 `pulse-core/pulse_core/screener/tracks/{track}.yaml` 注册
-- [ ] `pulse-core/tests/test_{strategy_key}.py`
-- [ ] `pulse-web/src/lib/strategy-meta.ts` 增加 key 为 `{strategy_key}` 的元数据条目
-- [ ] DB 不需改 schema（`daily_picks.strategy` 是字符串列）
-- [ ] 验证：`SELECT DISTINCT strategy FROM daily_picks` 应能查到新值
-
 ### 新 API 端点
 - [ ] `pulse-api/src/domains/{feature}/`：routes / service / repository / schemas
 - [ ] Zod schema 字段 camelCase；repository 负责 snake → camel 转换
@@ -115,11 +103,6 @@ pulse-web/src/
 - [ ] `pulse-web/src/types/{feature}.ts`：导出对应 TS 类型（**与后端 Zod 推导类型保持字段一致**）
 - [ ] `pulse-web/src/hooks/use-{feature}.ts`：封装数据获取
 - [ ] `pulse-web/src/pages/{feature}/{view}.tsx`
-
-### 新通知
-- [ ] pulse-core 写 `notifications_outbox`（`scheduled_at` = 次日 07:00；运维告警立即 NOW()）
-- [ ] `pulse-api/src/notifier/briefing.ts` 增加该事件的聚合规则
-- [ ] 新通道实现放在 `pulse-api/src/notifier/channels/{channel}.ts`
 
 ### 新定时任务
 - [ ] handler 实现：`pulse-core/pulse_core/scheduler/jobs/{domain}.py`
